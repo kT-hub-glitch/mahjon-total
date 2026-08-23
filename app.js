@@ -340,7 +340,10 @@ function renderHistory() {
       </div>
     `;
     item.querySelector(".edit-match-button").addEventListener("click", () => setEditingMatch(match.id));
-    item.querySelector(".delete-match-button").addEventListener("click", () => removeMatch(match.id));
+    item.querySelector(".delete-match-button").addEventListener("click", () => {
+      if (!confirm(`${title}を削除しますか？`)) return;
+      removeMatch(match.id);
+    });
     els.matchHistory.append(item);
   });
 }
