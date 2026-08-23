@@ -8,7 +8,7 @@
       name="description"
       content="麻雀大会の選手、半荘結果、順位点、合計ポイントをブラウザだけで集計できます。"
     />
-    <link rel="stylesheet" href="./style.css?v=20260824-tabs-edit" />
+    <link rel="stylesheet" href="./style.css?v=20260824-total-check" />
   </head>
   <body>
     <header class="app-header">
@@ -69,6 +69,11 @@
               </label>
             </div>
             <div id="seatRows" class="seat-rows"></div>
+            <div id="scoreTotal" class="score-total" aria-live="polite">
+              <span>合計</span>
+              <strong>0点</strong>
+              <small>100,000点にしてください</small>
+            </div>
             <div class="form-actions">
               <button id="submitMatchButton" class="primary-button" type="submit">スコアを登録</button>
               <button id="cancelEditButton" class="ghost-button" type="button" hidden>修正をやめる</button>
@@ -126,6 +131,6 @@
       </div>
     </template>
 
-    <script src="./app.js?v=20260824-tabs-edit" defer></script>
+    <script src="./app.js?v=20260824-total-check" defer></script>
   </body>
 </html>

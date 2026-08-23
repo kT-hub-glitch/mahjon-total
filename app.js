@@ -1,4 +1,5 @@
 const STORAGE_KEY = "mahjong-tournament-scoreboard-v1";
+const REQUIRED_TOTAL_SCORE = 100000;
 const FIXED_SETTINGS = {
   tournamentName: "麻雀大会",
   startScore: 25000,
@@ -30,6 +31,7 @@ const els = {
   matchMemo: document.querySelector("#matchMemo"),
   matchCount: document.querySelector("#matchCount"),
   seatRows: document.querySelector("#seatRows"),
+  scoreTotal: document.querySelector("#scoreTotal"),
   seatTemplate: document.querySelector("#seatTemplate"),
   standingsBody: document.querySelector("#standingsBody"),
   matchHistory: document.querySelector("#matchHistory"),
@@ -281,6 +283,25 @@ function updateSeatPreview() {
   rankSeats(seats).forEach((seat) => {
     seat.row.querySelector(".seat-preview").textContent = seat.rawScore === "" ? "未入力" : formatPoint(seat.point);
   });
+  updateScoreTotal(seats);
+}
+
+function updateScoreTotal(seats) {
+  const enteredSeats = seats.filter((seat) => seat.rawScore !== "");
+  const total = enteredSeats.reduce((sum, seat) => sum + Number(seat.score), 0);
+  const complete = enteredSeats.length === 4;
+  const valid = complete && total === REQUIRED_TOTAL_SCORE;
+  els.scoreTotal.classList.toggle("valid", valid);
+  els.scoreTotal.classList.toggle("invalid", complete && !valid);
+  els.scoreTotal.querySelector("strong").textContent = `${total.toLocaleString("ja-JP")}点`;
+  const diff = REQUIRED_TOTAL_SCORE - total;
+  const message =
+    diff === 0
+      ? "合計OK"
+      : diff > 0
+        ? `あと${diff.toLocaleString("ja-JP")}点`
+        : `${Math.abs(diff).toLocaleString("ja-JP")}点超過`;
+  els.scoreTotal.querySelector("small").textContent = complete || total > 0 ? message : "100,000点にしてください";
 }
 
 function renderAll() {
@@ -337,6 +358,10 @@ function collectMatchForm() {
   }
   if (seats.some((seat) => !Number.isFinite(seat.score))) {
     throw new Error("素点を入力してください。");
+  }
+  const total = seats.reduce((sum, seat) => sum + Number(seat.score), 0);
+  if (total !== REQUIRED_TOTAL_SCORE) {
+    throw new Error(`4人の合計点が100,000点になるように入力してください。現在は${total.toLocaleString("ja-JP")}点です。`);
   }
   return {
     id: crypto.randomUUID(),

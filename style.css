@@ -316,6 +316,46 @@ select:focus {
   text-align: right;
 }
 
+.score-total {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f9faf8;
+  padding: 0.7rem 0.8rem;
+}
+
+.score-total span,
+.score-total small {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.score-total strong {
+  text-align: right;
+}
+
+.score-total.valid {
+  border-color: rgba(18, 124, 99, 0.35);
+  background: rgba(18, 124, 99, 0.08);
+}
+
+.score-total.valid small {
+  color: var(--accent-dark);
+}
+
+.score-total.invalid {
+  border-color: rgba(180, 35, 24, 0.35);
+  background: #fff1ef;
+}
+
+.score-total.invalid small {
+  color: var(--danger);
+}
+
 .table-wrap {
   overflow-x: auto;
 }
@@ -479,6 +519,15 @@ tbody tr:first-child td {
   }
 
   .seat-preview {
+    text-align: left;
+  }
+
+  .score-total {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+
+  .score-total strong {
     text-align: left;
   }
 
