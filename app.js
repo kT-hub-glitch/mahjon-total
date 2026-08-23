@@ -38,7 +38,6 @@ const els = {
   submitMatchButton: document.querySelector("#submitMatchButton"),
   cancelEditButton: document.querySelector("#cancelEditButton"),
   importInput: document.querySelector("#importInput"),
-  sampleButton: document.querySelector("#sampleButton"),
 };
 
 function loadState() {
@@ -486,47 +485,6 @@ function importCsv(text) {
   renderAll();
 }
 
-function loadSample() {
-  editingMatchId = null;
-  state = {
-    settings: {
-      ...FIXED_SETTINGS,
-      tournamentName: "週末麻雀リーグ",
-    },
-    players: ["高橋", "佐藤", "鈴木", "田中", "伊藤", "山本"].map((name) => ({ id: crypto.randomUUID(), name })),
-    matches: [],
-  };
-  const id = (name) => state.players.find((player) => player.name === name).id;
-  state.matches = [
-    {
-      id: crypto.randomUUID(),
-      tableName: "",
-      memo: "",
-      createdAt: new Date().toISOString(),
-      seats: [
-        { playerId: id("高橋"), score: 43200 },
-        { playerId: id("佐藤"), score: 27800 },
-        { playerId: id("鈴木"), score: 21400 },
-        { playerId: id("田中"), score: 7600 },
-      ],
-    },
-    {
-      id: crypto.randomUUID(),
-      tableName: "",
-      memo: "",
-      createdAt: new Date().toISOString(),
-      seats: [
-        { playerId: id("伊藤"), score: 38100 },
-        { playerId: id("山本"), score: 32200 },
-        { playerId: id("高橋"), score: 19100 },
-        { playerId: id("佐藤"), score: 10600 },
-      ],
-    },
-  ];
-  saveState();
-  renderAll();
-}
-
 els.playerForm.addEventListener("submit", (event) => {
   event.preventDefault();
   addPlayer(els.playerName.value);
@@ -553,6 +511,4 @@ els.importInput.addEventListener("change", async (event) => {
   importCsv(await file.text());
   event.target.value = "";
 });
-els.sampleButton.addEventListener("click", loadSample);
-
 renderAll();
