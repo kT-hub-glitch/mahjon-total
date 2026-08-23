@@ -192,9 +192,13 @@ function renderSeats() {
       select.append(option);
     });
     row.querySelector(".seat-score").addEventListener("input", updateSeatPreview);
-    select.addEventListener("change", updateSeatPreview);
+    select.addEventListener("change", () => {
+      updateSeatOptions();
+      updateSeatPreview();
+    });
     els.seatRows.append(row);
   }
+  updateSeatOptions();
   updateSeatPreview();
 }
 
@@ -205,7 +209,18 @@ function setSeatForm(match = null) {
     row.querySelector(".seat-player").value = seat?.playerId || "";
     row.querySelector(".seat-score").value = seat?.score ?? "";
   });
+  updateSeatOptions();
   updateSeatPreview();
+}
+
+function updateSeatOptions() {
+  const selects = [...document.querySelectorAll(".seat-player")];
+  const selectedIds = selects.map((select) => select.value).filter(Boolean);
+  selects.forEach((select) => {
+    [...select.options].forEach((option) => {
+      option.disabled = Boolean(option.value) && option.value !== select.value && selectedIds.includes(option.value);
+    });
+  });
 }
 
 function setEditingMatch(matchId) {
