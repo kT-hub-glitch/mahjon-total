@@ -6,7 +6,7 @@
     <title>麻雀大会集計ツール</title>
     <meta
       name="description"
-      content="麻雀大会の選手、半荘結果、順位点、合計ポイントをブラウザだけで集計できます。"
+      content="麻雀大会の選手、対局結果、順位点、合計ポイントをブラウザだけで集計できます。"
     />
     <link rel="stylesheet" href="./style.css?v=20260824-raw-average" />
   </head>
@@ -48,9 +48,9 @@
           <div class="section-title">
             <div>
               <h2 id="entryHeading">スコア入力</h2>
-              <p id="editNotice" class="edit-notice" hidden>半荘履歴を修正中です。</p>
+              <p id="editNotice" class="edit-notice" hidden>対局履歴を修正中です。</p>
             </div>
-            <span id="saveStatus" class="status-pill">接続中</span>
+            <span id="saveStatus" class="status-pill"></span>
           </div>
           <form id="matchForm" class="match-form">
             <div id="seatRows" class="seat-rows"></div>
@@ -68,8 +68,8 @@
 
         <section class="panel history-panel" aria-labelledby="historyHeading">
           <div class="section-title">
-            <h2 id="historyHeading">半荘履歴</h2>
-            <span id="matchCount" class="count-label">0半荘</span>
+            <h2 id="historyHeading">対局履歴</h2>
+            <span id="matchCount" class="count-label">0対局</span>
           </div>
           <div id="matchHistory" class="history-list"></div>
         </section>
@@ -86,7 +86,7 @@
                 <tr>
                   <th>順位</th>
                   <th>選手</th>
-                  <th>半荘</th>
+                  <th>対局数</th>
                   <th>合計</th>
                   <th>平均</th>
                   <th>平均順位</th>

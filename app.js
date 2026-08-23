@@ -83,7 +83,7 @@ async function loadRemoteState({ keepForm = false } = {}) {
   };
 
   renderAll({ keepForm });
-  setStatus("同期済み");
+  setStatus("");
 }
 
 function playerNameById(id) {
@@ -253,7 +253,7 @@ function renderStandings() {
     tr.innerHTML = `
       <td data-label="順位">${index + 1}</td>
       <td data-label="選手">${escapeHtml(row.name)}</td>
-      <td data-label="半荘">${row.games}</td>
+      <td data-label="対局数">${row.games}</td>
       <td data-label="合計">${formatPoint(row.total)}</td>
       <td data-label="平均">${formatPoint(average)}</td>
       <td data-label="平均順位">${averageRank ? averageRank.toFixed(2) : "-"}</td>
@@ -278,7 +278,7 @@ function openPlayerDetail(row, standingRank, average, averageRank, rawAverage) {
   els.detailPlayerName.textContent = `${standingRank}位 ${row.name}`;
   els.detailStats.innerHTML = `
     <div><span>合計</span><strong>${formatPoint(row.total)}</strong></div>
-    <div><span>半荘</span><strong>${row.games}</strong></div>
+    <div><span>対局数</span><strong>${row.games}</strong></div>
     <div><span>平均</span><strong>${formatPoint(average)}</strong></div>
     <div><span>平均順位</span><strong>${averageRank ? averageRank.toFixed(2) : "-"}</strong></div>
     <div><span>1着</span><strong>${row.rankCounts[0]}</strong></div>
@@ -291,11 +291,11 @@ function openPlayerDetail(row, standingRank, average, averageRank, rawAverage) {
 }
 
 function renderHistory() {
-  els.matchCount.textContent = `${state.matches.length}半荘`;
+  els.matchCount.textContent = `${state.matches.length}対局`;
   els.matchHistory.innerHTML = "";
 
   if (state.matches.length === 0) {
-    els.matchHistory.innerHTML = '<p class="empty-state">半荘結果を入力すると履歴が表示されます。</p>';
+    els.matchHistory.innerHTML = '<p class="empty-state">対局結果を入力すると履歴が表示されます。</p>';
     return;
   }
 
@@ -304,10 +304,10 @@ function renderHistory() {
     const item = document.createElement("article");
     item.className = "history-item";
     const matchNumber = state.matches.findIndex((entry) => entry.id === match.id) + 1;
-    const title = `第${matchNumber}半荘`;
+    const title = `第${matchNumber}対局`;
     item.innerHTML = `
       <div>
-        <p class="history-title">${escapeHtml(title || "半荘")}</p>
+        <p class="history-title">${escapeHtml(title || "対局")}</p>
         <div class="history-scores">
           ${ranked
             .map(
@@ -321,7 +321,7 @@ function renderHistory() {
       </div>
       <div class="history-actions">
         <button class="ghost-button edit-match-button" type="button">修正</button>
-        <button class="icon-button delete-match-button" type="button" aria-label="半荘を削除">×</button>
+        <button class="icon-button delete-match-button" type="button" aria-label="対局を削除">×</button>
       </div>
     `;
     item.querySelector(".edit-match-button").addEventListener("click", () => setEditingMatch(match.id));
@@ -377,7 +377,7 @@ function renderAll({ keepForm = false } = {}) {
 async function removePlayer(playerId) {
   const used = state.matches.some((match) => match.seats.some((seat) => seat.playerId === playerId));
   if (used) {
-    alert("半荘履歴に使われている選手は削除できません。先に該当する半荘を削除してください。");
+    alert("対局履歴に使われている選手は削除できません。先に該当する対局を削除してください。");
     return;
   }
   setStatus("削除中");
@@ -399,7 +399,7 @@ async function removeMatch(matchId) {
   const { error } = await db.from("matches").delete().eq("id", matchId);
   if (error) {
     console.error(error);
-    alert("半荘を削除できませんでした。");
+    alert("対局を削除できませんでした。");
     setStatus("保存エラー", true);
     return;
   }
@@ -480,7 +480,7 @@ async function saveMatchFromForm() {
     const { data: createdMatch, error: matchError } = await db.from("matches").insert({}).select("id").single();
     if (matchError) {
       console.error(matchError);
-      alert("半荘を作成できませんでした。");
+      alert("対局を作成できませんでした。");
       setStatus("保存エラー", true);
       return;
     }
