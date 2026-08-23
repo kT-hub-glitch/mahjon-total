@@ -244,6 +244,7 @@ function renderStandings() {
     const tr = document.createElement("tr");
     const average = row.games ? row.total / row.games : 0;
     const averageRank = row.games ? row.rankTotal / row.games : 0;
+    const rawAverage = row.games ? row.rawScore / row.games : 0;
     tr.className = "standing-row";
     tr.tabIndex = 0;
     tr.setAttribute("role", "button");
@@ -259,20 +260,20 @@ function renderStandings() {
       <td data-label="2着">${row.rankCounts[1]}</td>
       <td data-label="3着">${row.rankCounts[2]}</td>
       <td data-label="4着">${row.rankCounts[3]}</td>
-      <td data-label="素点合計">${row.rawScore.toLocaleString("ja-JP")}</td>
+      <td data-label="素点平均">${rawAverage ? Math.round(rawAverage).toLocaleString("ja-JP") : "-"}</td>
     `;
-    tr.addEventListener("click", () => openPlayerDetail(row, index + 1, average, averageRank));
+    tr.addEventListener("click", () => openPlayerDetail(row, index + 1, average, averageRank, rawAverage));
     tr.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
-        openPlayerDetail(row, index + 1, average, averageRank);
+        openPlayerDetail(row, index + 1, average, averageRank, rawAverage);
       }
     });
     els.standingsBody.append(tr);
   });
 }
 
-function openPlayerDetail(row, standingRank, average, averageRank) {
+function openPlayerDetail(row, standingRank, average, averageRank, rawAverage) {
   els.detailPlayerName.textContent = `${standingRank}位 ${row.name}`;
   els.detailStats.innerHTML = `
     <div><span>合計</span><strong>${formatPoint(row.total)}</strong></div>
@@ -283,7 +284,7 @@ function openPlayerDetail(row, standingRank, average, averageRank) {
     <div><span>2着</span><strong>${row.rankCounts[1]}</strong></div>
     <div><span>3着</span><strong>${row.rankCounts[2]}</strong></div>
     <div><span>4着</span><strong>${row.rankCounts[3]}</strong></div>
-    <div><span>素点合計</span><strong>${row.rawScore.toLocaleString("ja-JP")}</strong></div>
+    <div><span>素点平均</span><strong>${rawAverage ? Math.round(rawAverage).toLocaleString("ja-JP") : "-"}</strong></div>
   `;
   els.playerDetailDialog.showModal();
 }

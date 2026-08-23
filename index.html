@@ -8,7 +8,7 @@
       name="description"
       content="麻雀大会の選手、半荘結果、順位点、合計ポイントをブラウザだけで集計できます。"
     />
-    <link rel="stylesheet" href="./style.css?v=20260824-compact-ranking" />
+    <link rel="stylesheet" href="./style.css?v=20260824-raw-average" />
   </head>
   <body>
     <header class="app-header">
@@ -95,7 +95,7 @@
                   <th>2着</th>
                   <th>3着</th>
                   <th>4着</th>
-                  <th>素点合計</th>
+                  <th>素点平均</th>
                 </tr>
               </thead>
               <tbody id="standingsBody"></tbody>
@@ -122,6 +122,6 @@
     </template>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="./app.js?v=20260824-compact-ranking" defer></script>
+    <script src="./app.js?v=20260824-raw-average" defer></script>
   </body>
 </html>
