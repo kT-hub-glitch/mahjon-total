@@ -96,10 +96,32 @@ h2 {
   padding: 1rem;
 }
 
-.settings-panel,
+.rule-strip,
 .standings-panel,
 .history-panel {
   grid-column: 1 / -1;
+}
+
+.rule-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem 1rem;
+  border: 1px solid rgba(18, 124, 99, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--muted);
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+}
+
+.rule-strip span {
+  color: var(--accent-dark);
+  font-weight: 800;
+}
+
+.rule-strip strong {
+  color: var(--ink);
 }
 
 .section-title {
@@ -116,12 +138,6 @@ h2 {
   font-size: 0.82rem;
   font-weight: 700;
   white-space: nowrap;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(7rem, 1fr));
-  gap: 0.75rem;
 }
 
 label {
@@ -323,8 +339,7 @@ tbody tr:first-child td {
     padding-right: 1rem;
   }
 
-  .app-shell,
-  .form-grid {
+  .app-shell {
     grid-template-columns: 1fr;
   }
 }

@@ -1,11 +1,12 @@
 const STORAGE_KEY = "mahjong-tournament-scoreboard-v1";
+const FIXED_SETTINGS = {
+  tournamentName: "麻雀大会",
+  returnScore: 30000,
+  uma: [50, 10, -10, -30],
+};
 
 const defaultState = {
-  settings: {
-    tournamentName: "麻雀大会",
-    returnScore: 30000,
-    uma: [50, 10, -10, -30],
-  },
+  settings: FIXED_SETTINGS,
   players: [],
   matches: [],
 };
@@ -13,14 +14,6 @@ const defaultState = {
 let state = loadState();
 
 const els = {
-  tournamentName: document.querySelector("#tournamentName"),
-  returnScore: document.querySelector("#returnScore"),
-  uma: [
-    document.querySelector("#uma1"),
-    document.querySelector("#uma2"),
-    document.querySelector("#uma3"),
-    document.querySelector("#uma4"),
-  ],
   playerForm: document.querySelector("#playerForm"),
   playerName: document.querySelector("#playerName"),
   playerList: document.querySelector("#playerList"),
@@ -101,11 +94,7 @@ function aggregateStandings() {
 }
 
 function renderSettings() {
-  els.tournamentName.value = state.settings.tournamentName;
-  els.returnScore.value = state.settings.returnScore;
-  els.uma.forEach((input, index) => {
-    input.value = state.settings.uma[index];
-  });
+  state.settings = structuredClone(FIXED_SETTINGS);
 }
 
 function renderPlayers() {
@@ -414,9 +403,8 @@ function importCsv(text) {
 function loadSample() {
   state = {
     settings: {
+      ...FIXED_SETTINGS,
       tournamentName: "週末麻雀リーグ",
-      returnScore: 30000,
-      uma: [50, 10, -10, -30],
     },
     players: ["高橋", "佐藤", "鈴木", "田中", "伊藤", "山本"].map((name) => ({ id: crypto.randomUUID(), name })),
     matches: [],
@@ -469,20 +457,6 @@ els.matchForm.addEventListener("submit", (event) => {
   } catch (error) {
     alert(error.message);
   }
-});
-
-[els.tournamentName, els.returnScore, ...els.uma].forEach((input) => {
-  input.addEventListener("input", () => {
-    state.settings = {
-      tournamentName: els.tournamentName.value,
-      returnScore: Number(els.returnScore.value || 0),
-      uma: els.uma.map((uma) => Number(uma.value || 0)),
-    };
-    els.saveStatus.textContent = "編集中";
-    saveState();
-    renderStandings();
-    updateSeatPreview();
-  });
 });
 
 els.exportButton.addEventListener("click", exportCsv);

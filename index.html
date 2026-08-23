@@ -23,41 +23,13 @@
     </header>
 
     <main class="app-shell">
-      <section class="panel settings-panel" aria-labelledby="settingsHeading">
-        <div class="section-title">
-          <h2 id="settingsHeading">大会設定</h2>
-          <span id="saveStatus" class="status-pill">保存済み</span>
-        </div>
-
-        <div class="form-grid">
-          <label>
-            大会名
-            <input id="tournamentName" type="text" autocomplete="off" />
-          </label>
-          <label>
-            返し
-            <input id="returnScore" type="number" step="1000" min="0" />
-          </label>
-          <label>
-            1位順位点
-            <input id="uma1" type="number" step="1" />
-          </label>
-          <label>
-            2位順位点
-            <input id="uma2" type="number" step="1" />
-          </label>
-          <label>
-            3位順位点
-            <input id="uma3" type="number" step="1" />
-          </label>
-          <label>
-            4位順位点
-            <input id="uma4" type="number" step="1" />
-          </label>
-        </div>
+      <section class="rule-strip" aria-label="固定ルール">
+        <span>固定ルール</span>
+        <strong>返し 30000</strong>
+        <strong>順位点 +50 / +10 / -10 / -30</strong>
       </section>
 
-      <section class="panel" aria-labelledby="playersHeading">
+      <section class="panel players-panel" aria-labelledby="playersHeading">
         <div class="section-title">
           <h2 id="playersHeading">選手</h2>
           <span id="playerCount" class="count-label">0人</span>
@@ -71,8 +43,8 @@
 
       <section class="panel result-entry" aria-labelledby="entryHeading">
         <div class="section-title">
-          <h2 id="entryHeading">半荘入力</h2>
-          <span id="matchCount" class="count-label">0半荘</span>
+          <h2 id="entryHeading">スコア入力</h2>
+          <span id="saveStatus" class="status-pill">保存済み</span>
         </div>
         <form id="matchForm" class="match-form">
           <div class="table-meta">
@@ -86,7 +58,7 @@
             </label>
           </div>
           <div id="seatRows" class="seat-rows"></div>
-          <button class="primary-button" type="submit">半荘を追加</button>
+          <button class="primary-button" type="submit">スコアを登録</button>
         </form>
       </section>
 
@@ -123,6 +95,7 @@
       <section class="panel history-panel" aria-labelledby="historyHeading">
         <div class="section-title">
           <h2 id="historyHeading">半荘履歴</h2>
+          <span id="matchCount" class="count-label">0半荘</span>
         </div>
         <div id="matchHistory" class="history-list"></div>
       </section>
