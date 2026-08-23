@@ -396,7 +396,7 @@ function renderHistory() {
     const ranked = rankSeats(match.seats);
     const item = document.createElement("article");
     item.className = "history-item";
-    const title = `${match.tableName || "A"}卓${match.roundNumber || 1}回戦`;
+    const title = `${match.roundNumber || 1}回戦${match.tableName || "A"}卓`;
     item.innerHTML = `
       <div>
         <p class="history-title">${escapeHtml(title || "対局")}</p>
