@@ -1,4 +1,4 @@
-const SUPABASE_URL = "https://lrxsgvqazsqxsmpylhoy.supabase.co";
+const SUPABASE_URL = "https://irxsgvqazsqxsmpylhoy.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_nsg85bJVjJjWcZNmgF7y3Q_x7_3YZYU";
 const REQUIRED_TOTAL_SCORE = 100000;
 const FIXED_SETTINGS = {
