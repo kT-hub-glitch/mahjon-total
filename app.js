@@ -75,17 +75,19 @@ async function loadRemoteState({ keepForm = false } = {}) {
       id: player.id,
       name: player.name,
     })),
-    matches: (matches || []).map((match) => ({
-      id: match.id,
-      tableName: match.table_name || "A",
-      roundNumber: Number(match.round_number || 1),
-      memo: "",
-      createdAt: match.created_at,
-      seats: (match.scores || []).map((score) => ({
-        playerId: score.participant_id,
-        score: Number(score.score),
+    matches: sortMatches(
+      (matches || []).map((match) => ({
+        id: match.id,
+        tableName: match.table_name || "A",
+        roundNumber: Number(match.round_number || 1),
+        memo: "",
+        createdAt: match.created_at,
+        seats: (match.scores || []).map((score) => ({
+          playerId: score.participant_id,
+          score: Number(score.score),
+        })),
       })),
-    })),
+    ),
   };
 
   renderAll({ keepForm });
@@ -128,6 +130,15 @@ function rankSeats(seats) {
   }
 
   return ranked;
+}
+
+function sortMatches(matches) {
+  return [...matches].sort(
+    (a, b) =>
+      Number(a.roundNumber || 1) - Number(b.roundNumber || 1) ||
+      String(a.tableName || "A").localeCompare(String(b.tableName || "A"), "en") ||
+      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+  );
 }
 
 function aggregateStandings() {
@@ -217,6 +228,7 @@ function setSeatForm(match = null) {
     row.querySelector(".seat-player").value = seat?.playerId || "";
     row.querySelector(".seat-score").value = seat?.score ?? "";
   });
+  updateMatchMetaOptions();
   updateSeatOptions();
   updateSeatPreview();
 }
@@ -247,6 +259,46 @@ function renderMatchMetaOptions() {
     option.textContent = `${round}回戦`;
     els.roundNumber.append(option);
   }
+  updateMatchMetaOptions();
+}
+
+function updateMatchMetaOptions() {
+  const usedCombos = new Set(
+    state.matches
+      .filter((match) => match.id !== editingMatchId)
+      .map((match) => `${match.tableName || "A"}-${Number(match.roundNumber || 1)}`),
+  );
+  let currentTable = els.tableName.value || "A";
+  let currentRound = Number(els.roundNumber.value || 1);
+
+  if (usedCombos.has(`${currentTable}-${currentRound}`)) {
+    const nextCombo = findFirstOpenCombo(usedCombos);
+    if (nextCombo) {
+      els.tableName.value = nextCombo.tableName;
+      els.roundNumber.value = String(nextCombo.roundNumber);
+      currentTable = nextCombo.tableName;
+      currentRound = nextCombo.roundNumber;
+    }
+  }
+
+  [...els.tableName.options].forEach((option) => {
+    option.disabled = usedCombos.has(`${option.value}-${currentRound}`);
+  });
+  [...els.roundNumber.options].forEach((option) => {
+    option.disabled = usedCombos.has(`${currentTable}-${Number(option.value)}`);
+  });
+}
+
+function findFirstOpenCombo(usedCombos) {
+  const tables = "ABCDEFGHIJ".split("");
+  for (let round = 1; round <= 8; round += 1) {
+    for (const tableName of tables) {
+      if (!usedCombos.has(`${tableName}-${round}`)) {
+        return { tableName, roundNumber: round };
+      }
+    }
+  }
+  return null;
 }
 
 function setEditingMatch(matchId) {
@@ -340,7 +392,7 @@ function renderHistory() {
     return;
   }
 
-  [...state.matches].reverse().forEach((match) => {
+  sortMatches(state.matches).forEach((match) => {
     const ranked = rankSeats(match.seats);
     const item = document.createElement("article");
     item.className = "history-item";
@@ -487,10 +539,21 @@ function collectMatchForm() {
   if (total !== REQUIRED_TOTAL_SCORE) {
     throw new Error(`4人の合計点が100,000点になるように入力してください。現在は${total.toLocaleString("ja-JP")}点です。`);
   }
+  const tableName = els.tableName.value;
+  const roundNumber = Number(els.roundNumber.value);
+  const used = state.matches.some(
+    (match) =>
+      match.id !== editingMatchId &&
+      (match.tableName || "A") === tableName &&
+      Number(match.roundNumber || 1) === roundNumber,
+  );
+  if (used) {
+    throw new Error(`${tableName}卓${roundNumber}回戦はすでに登録されています。別の卓・回戦を選んでください。`);
+  }
   return {
     id: crypto.randomUUID(),
-    tableName: els.tableName.value,
-    roundNumber: Number(els.roundNumber.value),
+    tableName,
+    roundNumber,
     memo: "",
     createdAt: new Date().toISOString(),
     seats,
@@ -608,6 +671,8 @@ els.inputTab.addEventListener("click", () => setView("input"));
 els.rankingTab.addEventListener("click", () => setView("ranking"));
 els.cancelEditButton.addEventListener("click", clearEditingMatch);
 els.closeDetailButton.addEventListener("click", () => els.playerDetailDialog.close());
+els.tableName.addEventListener("change", updateMatchMetaOptions);
+els.roundNumber.addEventListener("change", updateMatchMetaOptions);
 
 renderAll();
 loadRemoteState();
