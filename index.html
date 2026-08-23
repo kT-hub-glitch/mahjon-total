@@ -53,6 +53,16 @@
             <span id="saveStatus" class="status-pill"></span>
           </div>
           <form id="matchForm" class="match-form">
+            <div class="match-meta">
+              <label>
+                卓
+                <select id="tableName" required></select>
+              </label>
+              <label>
+                回戦
+                <select id="roundNumber" required></select>
+              </label>
+            </div>
             <div id="seatRows" class="seat-rows"></div>
             <div id="scoreTotal" class="score-total" aria-live="polite">
               <span>合計</span>
@@ -121,6 +131,6 @@
     </template>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="./app.js?v=20260824-delete-confirm" defer></script>
+    <script src="./app.js?v=20260824-table-round" defer></script>
   </body>
 </html>

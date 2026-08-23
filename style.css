@@ -271,6 +271,12 @@ select:focus {
   gap: 0.75rem;
 }
 
+.match-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
 .form-actions {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -535,6 +541,7 @@ tbody tr:first-child td {
     grid-template-columns: 1fr;
   }
 
+  .match-meta,
   .seat-row {
     grid-template-columns: 1fr;
   }

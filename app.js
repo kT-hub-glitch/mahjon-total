@@ -30,6 +30,8 @@ const els = {
   playerList: document.querySelector("#playerList"),
   playerCount: document.querySelector("#playerCount"),
   matchForm: document.querySelector("#matchForm"),
+  tableName: document.querySelector("#tableName"),
+  roundNumber: document.querySelector("#roundNumber"),
   matchCount: document.querySelector("#matchCount"),
   seatRows: document.querySelector("#seatRows"),
   scoreTotal: document.querySelector("#scoreTotal"),
@@ -55,7 +57,10 @@ async function loadRemoteState({ keepForm = false } = {}) {
   setStatus("同期中");
   const [{ data: participants, error: playersError }, { data: matches, error: matchesError }] = await Promise.all([
     db.from("participants").select("id,name,created_at").order("created_at", { ascending: true }),
-    db.from("matches").select("id,created_at,scores(participant_id,score)").order("created_at", { ascending: true }),
+    db
+      .from("matches")
+      .select("id,created_at,table_name,round_number,scores(participant_id,score)")
+      .order("created_at", { ascending: true }),
   ]);
 
   if (playersError || matchesError) {
@@ -72,7 +77,8 @@ async function loadRemoteState({ keepForm = false } = {}) {
     })),
     matches: (matches || []).map((match) => ({
       id: match.id,
-      tableName: "",
+      tableName: match.table_name || "A",
+      roundNumber: Number(match.round_number || 1),
       memo: "",
       createdAt: match.created_at,
       seats: (match.scores || []).map((score) => ({
@@ -203,6 +209,8 @@ function renderSeats() {
 }
 
 function setSeatForm(match = null) {
+  els.tableName.value = match?.tableName || "A";
+  els.roundNumber.value = String(match?.roundNumber || 1);
   const rows = [...document.querySelectorAll(".seat-row")];
   rows.forEach((row, index) => {
     const seat = match?.seats[index];
@@ -221,6 +229,24 @@ function updateSeatOptions() {
       option.disabled = Boolean(option.value) && option.value !== select.value && selectedIds.includes(option.value);
     });
   });
+}
+
+function renderMatchMetaOptions() {
+  els.tableName.innerHTML = "";
+  "ABCDEFGHIJ".split("").forEach((table) => {
+    const option = document.createElement("option");
+    option.value = table;
+    option.textContent = `${table}卓`;
+    els.tableName.append(option);
+  });
+
+  els.roundNumber.innerHTML = "";
+  for (let round = 1; round <= 8; round += 1) {
+    const option = document.createElement("option");
+    option.value = String(round);
+    option.textContent = `${round}回戦`;
+    els.roundNumber.append(option);
+  }
 }
 
 function setEditingMatch(matchId) {
@@ -318,8 +344,7 @@ function renderHistory() {
     const ranked = rankSeats(match.seats);
     const item = document.createElement("article");
     item.className = "history-item";
-    const matchNumber = state.matches.findIndex((entry) => entry.id === match.id) + 1;
-    const title = `第${matchNumber}対局`;
+    const title = `${match.tableName || "A"}卓${match.roundNumber || 1}回戦`;
     item.innerHTML = `
       <div>
         <p class="history-title">${escapeHtml(title || "対局")}</p>
@@ -382,6 +407,9 @@ function updateScoreTotal(seats) {
 
 function renderAll({ keepForm = false } = {}) {
   renderSettings();
+  if (!keepForm) {
+    renderMatchMetaOptions();
+  }
   renderPlayers();
   if (!keepForm) {
     renderSeats();
@@ -461,7 +489,8 @@ function collectMatchForm() {
   }
   return {
     id: crypto.randomUUID(),
-    tableName: "",
+    tableName: els.tableName.value,
+    roundNumber: Number(els.roundNumber.value),
     memo: "",
     createdAt: new Date().toISOString(),
     seats,
@@ -472,6 +501,19 @@ async function saveMatchFromForm() {
   const match = collectMatchForm();
   if (editingMatchId) {
     setStatus("修正中");
+    const { error: matchUpdateError } = await db
+      .from("matches")
+      .update({
+        table_name: match.tableName,
+        round_number: match.roundNumber,
+      })
+      .eq("id", editingMatchId);
+    if (matchUpdateError) {
+      console.error(matchUpdateError);
+      alert("卓・回戦を更新できませんでした。");
+      setStatus("保存エラー", true);
+      return;
+    }
     const { error: deleteError } = await db.from("scores").delete().eq("match_id", editingMatchId);
     if (deleteError) {
       console.error(deleteError);
@@ -495,7 +537,14 @@ async function saveMatchFromForm() {
     editingMatchId = null;
   } else {
     setStatus("保存中");
-    const { data: createdMatch, error: matchError } = await db.from("matches").insert({}).select("id").single();
+    const { data: createdMatch, error: matchError } = await db
+      .from("matches")
+      .insert({
+        table_name: match.tableName,
+        round_number: match.roundNumber,
+      })
+      .select("id")
+      .single();
     if (matchError) {
       console.error(matchError);
       alert("対局を作成できませんでした。");
