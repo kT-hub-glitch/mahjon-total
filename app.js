@@ -27,7 +27,6 @@ const els = {
   playerList: document.querySelector("#playerList"),
   playerCount: document.querySelector("#playerCount"),
   matchForm: document.querySelector("#matchForm"),
-  tableName: document.querySelector("#tableName"),
   matchMemo: document.querySelector("#matchMemo"),
   matchCount: document.querySelector("#matchCount"),
   seatRows: document.querySelector("#seatRows"),
@@ -39,10 +38,8 @@ const els = {
   editNotice: document.querySelector("#editNotice"),
   submitMatchButton: document.querySelector("#submitMatchButton"),
   cancelEditButton: document.querySelector("#cancelEditButton"),
-  exportButton: document.querySelector("#exportButton"),
   importInput: document.querySelector("#importInput"),
   sampleButton: document.querySelector("#sampleButton"),
-  resetButton: document.querySelector("#resetButton"),
 };
 
 function loadState() {
@@ -172,7 +169,6 @@ function renderSeats() {
 }
 
 function setSeatForm(match = null) {
-  els.tableName.value = match?.tableName || "";
   els.matchMemo.value = match?.memo || "";
   const rows = [...document.querySelectorAll(".seat-row")];
   rows.forEach((row, index) => {
@@ -246,7 +242,7 @@ function renderHistory() {
     const ranked = rankSeats(match.seats);
     const item = document.createElement("article");
     item.className = "history-item";
-    const title = [match.tableName || "卓未設定", match.memo].filter(Boolean).join(" / ");
+    const title = match.memo || "半荘";
     item.innerHTML = `
       <div>
         <p class="history-title">${escapeHtml(title || "半荘")}</p>
@@ -365,7 +361,7 @@ function collectMatchForm() {
   }
   return {
     id: crypto.randomUUID(),
-    tableName: els.tableName.value.trim(),
+    tableName: "",
     memo: els.matchMemo.value.trim(),
     createdAt: new Date().toISOString(),
     seats,
@@ -403,44 +399,6 @@ function escapeHtml(value) {
     const entities = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
     return entities[char];
   });
-}
-
-function exportCsv() {
-  const rows = [
-    ["type", "tournament", "returnScore", "uma1", "uma2", "uma3", "uma4", "table", "memo", "player", "score"],
-    ["settings", state.settings.tournamentName, state.settings.returnScore, ...state.settings.uma, "", "", "", ""],
-  ];
-  state.players.forEach((player) => rows.push(["player", "", "", "", "", "", "", "", "", player.name, ""]));
-  state.matches.forEach((match) => {
-    match.seats.forEach((seat) => {
-      rows.push([
-        "match",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        match.tableName,
-        match.memo,
-        playerNameById(seat.playerId),
-        seat.score,
-      ]);
-    });
-  });
-  const csv = rows.map((row) => row.map(csvCell).join(",")).join("\n");
-  const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `${state.settings.tournamentName || "mahjong"}-results.csv`;
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
-function csvCell(value) {
-  const text = String(value ?? "");
-  return `"${text.replaceAll('"', '""')}"`;
 }
 
 function parseCsv(text) {
@@ -539,7 +497,7 @@ function loadSample() {
   state.matches = [
     {
       id: crypto.randomUUID(),
-      tableName: "A卓",
+      tableName: "",
       memo: "第1回戦",
       createdAt: new Date().toISOString(),
       seats: [
@@ -551,7 +509,7 @@ function loadSample() {
     },
     {
       id: crypto.randomUUID(),
-      tableName: "B卓",
+      tableName: "",
       memo: "第1回戦",
       createdAt: new Date().toISOString(),
       seats: [
@@ -586,7 +544,6 @@ els.inputTab.addEventListener("click", () => setView("input"));
 els.rankingTab.addEventListener("click", () => setView("ranking"));
 els.cancelEditButton.addEventListener("click", clearEditingMatch);
 
-els.exportButton.addEventListener("click", exportCsv);
 els.importInput.addEventListener("change", async (event) => {
   const file = event.target.files[0];
   if (!file) return;
@@ -594,12 +551,5 @@ els.importInput.addEventListener("change", async (event) => {
   event.target.value = "";
 });
 els.sampleButton.addEventListener("click", loadSample);
-els.resetButton.addEventListener("click", () => {
-  if (!confirm("保存済みの選手と半荘履歴をすべて削除しますか？")) return;
-  editingMatchId = null;
-  state = structuredClone(defaultState);
-  saveState();
-  renderAll();
-});
 
 renderAll();

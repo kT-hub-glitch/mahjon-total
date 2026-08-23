@@ -8,7 +8,7 @@
       name="description"
       content="麻雀大会の選手、半荘結果、順位点、合計ポイントをブラウザだけで集計できます。"
     />
-    <link rel="stylesheet" href="./style.css?v=20260824-total-check" />
+    <link rel="stylesheet" href="./style.css?v=20260824-slim-input" />
   </head>
   <body>
     <header class="app-header">
@@ -18,7 +18,6 @@
       </div>
       <div class="header-actions">
         <button id="sampleButton" class="ghost-button" type="button">サンプル</button>
-        <button id="resetButton" class="danger-button" type="button">リセット</button>
       </div>
     </header>
 
@@ -58,11 +57,7 @@
             <span id="saveStatus" class="status-pill">保存済み</span>
           </div>
           <form id="matchForm" class="match-form">
-            <div class="table-meta">
-              <label>
-                卓
-                <input id="tableName" type="text" placeholder="A卓" autocomplete="off" inputmode="text" />
-              </label>
+            <div class="match-meta">
               <label>
                 メモ
                 <input id="matchMemo" type="text" placeholder="第1回戦など" autocomplete="off" inputmode="text" />
@@ -95,7 +90,6 @@
           <div class="section-title">
             <h2 id="standingsHeading">成績ランキング</h2>
             <div class="export-actions">
-              <button id="exportButton" class="ghost-button" type="button">CSV書き出し</button>
               <label class="file-button">
                 CSV読込
                 <input id="importInput" type="file" accept=".csv,text/csv" />
@@ -131,6 +125,6 @@
       </div>
     </template>
 
-    <script src="./app.js?v=20260824-total-check" defer></script>
+    <script src="./app.js?v=20260824-slim-input" defer></script>
   </body>
 </html>
