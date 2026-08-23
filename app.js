@@ -101,8 +101,8 @@ function aggregateStandings() {
     games: 0,
     total: 0,
     rawScore: 0,
-    firsts: 0,
-    lasts: 0,
+    rankTotal: 0,
+    rankCounts: [0, 0, 0, 0],
   }));
 
   const rowById = new Map(rows.map((row) => [row.id, row]));
@@ -113,8 +113,8 @@ function aggregateStandings() {
       row.games += 1;
       row.total += seat.point;
       row.rawScore += Number(seat.score);
-      if (seat.rank === 1) row.firsts += 1;
-      if (seat.rankEnd === 4) row.lasts += 1;
+      row.rankTotal += seat.rank;
+      row.rankCounts[Math.min(seat.rank, 4) - 1] += 1;
     });
   });
 
@@ -208,21 +208,25 @@ function renderStandings() {
   els.standingsBody.innerHTML = "";
 
   if (rows.length === 0) {
-    els.standingsBody.innerHTML = '<tr><td colspan="8">まだ集計対象がありません。</td></tr>';
+    els.standingsBody.innerHTML = '<tr><td colspan="11">まだ集計対象がありません。</td></tr>';
     return;
   }
 
   rows.forEach((row, index) => {
     const tr = document.createElement("tr");
     const average = row.games ? row.total / row.games : 0;
+    const averageRank = row.games ? row.rankTotal / row.games : 0;
     tr.innerHTML = `
       <td data-label="順位">${index + 1}</td>
       <td data-label="選手">${escapeHtml(row.name)}</td>
       <td data-label="半荘">${row.games}</td>
       <td data-label="合計">${formatPoint(row.total)}</td>
       <td data-label="平均">${formatPoint(average)}</td>
-      <td data-label="トップ">${row.firsts}</td>
-      <td data-label="ラス">${row.lasts}</td>
+      <td data-label="平均順位">${averageRank ? averageRank.toFixed(2) : "-"}</td>
+      <td data-label="1着">${row.rankCounts[0]}</td>
+      <td data-label="2着">${row.rankCounts[1]}</td>
+      <td data-label="3着">${row.rankCounts[2]}</td>
+      <td data-label="4着">${row.rankCounts[3]}</td>
       <td data-label="素点合計">${row.rawScore.toLocaleString("ja-JP")}</td>
     `;
     els.standingsBody.append(tr);
