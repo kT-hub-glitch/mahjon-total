@@ -380,6 +380,54 @@ tbody tr:first-child td {
   font-weight: 800;
 }
 
+.standing-row {
+  cursor: pointer;
+}
+
+.standing-row:focus-visible {
+  outline: 3px solid rgba(18, 124, 99, 0.28);
+  outline-offset: -3px;
+}
+
+.detail-dialog {
+  width: min(28rem, calc(100vw - 2rem));
+  border: 0;
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 1rem;
+}
+
+.detail-dialog::backdrop {
+  background: rgba(23, 32, 25, 0.42);
+}
+
+.detail-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.detail-stats {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.detail-stats div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--line);
+  padding: 0.55rem 0;
+}
+
+.detail-stats span {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
 .history-list {
   display: grid;
   gap: 0.7rem;
@@ -522,25 +570,32 @@ tbody tr:first-child td {
     text-align: left;
   }
 
-  table {
+  table,
+  tbody {
+    display: block;
     min-width: 0;
+    width: 100%;
   }
 
   thead {
     display: none;
   }
 
-  tbody,
-  tr,
-  td {
-    display: block;
+  #standingsBody {
+    display: grid;
+    gap: 0.45rem;
   }
 
   tbody tr {
+    display: grid;
+    grid-template-columns: 2.8rem 1fr auto;
+    align-items: center;
+    gap: 0.55rem;
     border: 1px solid var(--line);
     border-radius: 8px;
-    margin-bottom: 0.65rem;
-    padding: 0.3rem 0;
+    margin-bottom: 0;
+    min-height: 3rem;
+    padding: 0.55rem 0.65rem;
     background: #fff;
   }
 
@@ -550,22 +605,35 @@ tbody tr:first-child td {
   }
 
   td {
-    display: flex;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.42rem 0.7rem;
-    text-align: right;
+    display: none;
+    padding: 0;
+    text-align: left;
   }
 
-  td::before {
+  td:nth-child(1),
+  td:nth-child(2),
+  td:nth-child(4) {
+    display: block;
+  }
+
+  td:nth-child(1) {
     color: var(--muted);
-    content: attr(data-label);
-    font-size: 0.78rem;
-    font-weight: 800;
+    font-size: 0.86rem;
+    font-weight: 900;
   }
 
   td:nth-child(2) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 900;
+  }
+
+  td:nth-child(4) {
     text-align: right;
+    color: var(--accent-dark);
+    font-weight: 900;
   }
 
   .history-item {

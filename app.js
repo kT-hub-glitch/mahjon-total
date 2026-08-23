@@ -34,6 +34,10 @@ const els = {
   scoreTotal: document.querySelector("#scoreTotal"),
   seatTemplate: document.querySelector("#seatTemplate"),
   standingsBody: document.querySelector("#standingsBody"),
+  playerDetailDialog: document.querySelector("#playerDetailDialog"),
+  detailPlayerName: document.querySelector("#detailPlayerName"),
+  detailStats: document.querySelector("#detailStats"),
+  closeDetailButton: document.querySelector("#closeDetailButton"),
   matchHistory: document.querySelector("#matchHistory"),
   saveStatus: document.querySelector("#saveStatus"),
   editNotice: document.querySelector("#editNotice"),
@@ -240,6 +244,10 @@ function renderStandings() {
     const tr = document.createElement("tr");
     const average = row.games ? row.total / row.games : 0;
     const averageRank = row.games ? row.rankTotal / row.games : 0;
+    tr.className = "standing-row";
+    tr.tabIndex = 0;
+    tr.setAttribute("role", "button");
+    tr.setAttribute("aria-label", `${row.name}の個人成績を表示`);
     tr.innerHTML = `
       <td data-label="順位">${index + 1}</td>
       <td data-label="選手">${escapeHtml(row.name)}</td>
@@ -253,8 +261,31 @@ function renderStandings() {
       <td data-label="4着">${row.rankCounts[3]}</td>
       <td data-label="素点合計">${row.rawScore.toLocaleString("ja-JP")}</td>
     `;
+    tr.addEventListener("click", () => openPlayerDetail(row, index + 1, average, averageRank));
+    tr.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openPlayerDetail(row, index + 1, average, averageRank);
+      }
+    });
     els.standingsBody.append(tr);
   });
+}
+
+function openPlayerDetail(row, standingRank, average, averageRank) {
+  els.detailPlayerName.textContent = `${standingRank}位 ${row.name}`;
+  els.detailStats.innerHTML = `
+    <div><span>合計</span><strong>${formatPoint(row.total)}</strong></div>
+    <div><span>半荘</span><strong>${row.games}</strong></div>
+    <div><span>平均</span><strong>${formatPoint(average)}</strong></div>
+    <div><span>平均順位</span><strong>${averageRank ? averageRank.toFixed(2) : "-"}</strong></div>
+    <div><span>1着</span><strong>${row.rankCounts[0]}</strong></div>
+    <div><span>2着</span><strong>${row.rankCounts[1]}</strong></div>
+    <div><span>3着</span><strong>${row.rankCounts[2]}</strong></div>
+    <div><span>4着</span><strong>${row.rankCounts[3]}</strong></div>
+    <div><span>素点合計</span><strong>${row.rawScore.toLocaleString("ja-JP")}</strong></div>
+  `;
+  els.playerDetailDialog.showModal();
 }
 
 function renderHistory() {
@@ -507,6 +538,7 @@ els.matchForm.addEventListener("submit", async (event) => {
 els.inputTab.addEventListener("click", () => setView("input"));
 els.rankingTab.addEventListener("click", () => setView("ranking"));
 els.cancelEditButton.addEventListener("click", clearEditingMatch);
+els.closeDetailButton.addEventListener("click", () => els.playerDetailDialog.close());
 
 renderAll();
 loadRemoteState();
