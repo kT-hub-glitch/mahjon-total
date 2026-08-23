@@ -13,8 +13,14 @@ const defaultState = {
 };
 
 let state = loadState();
+let activeView = "input";
+let editingMatchId = null;
 
 const els = {
+  inputTab: document.querySelector("#inputTab"),
+  rankingTab: document.querySelector("#rankingTab"),
+  inputPage: document.querySelector("#inputPage"),
+  rankingPage: document.querySelector("#rankingPage"),
   playerForm: document.querySelector("#playerForm"),
   playerName: document.querySelector("#playerName"),
   playerList: document.querySelector("#playerList"),
@@ -28,6 +34,9 @@ const els = {
   standingsBody: document.querySelector("#standingsBody"),
   matchHistory: document.querySelector("#matchHistory"),
   saveStatus: document.querySelector("#saveStatus"),
+  editNotice: document.querySelector("#editNotice"),
+  submitMatchButton: document.querySelector("#submitMatchButton"),
+  cancelEditButton: document.querySelector("#cancelEditButton"),
   exportButton: document.querySelector("#exportButton"),
   importInput: document.querySelector("#importInput"),
   sampleButton: document.querySelector("#sampleButton"),
@@ -160,6 +169,42 @@ function renderSeats() {
   updateSeatPreview();
 }
 
+function setSeatForm(match = null) {
+  els.tableName.value = match?.tableName || "";
+  els.matchMemo.value = match?.memo || "";
+  const rows = [...document.querySelectorAll(".seat-row")];
+  rows.forEach((row, index) => {
+    const seat = match?.seats[index];
+    row.querySelector(".seat-player").value = seat?.playerId || "";
+    row.querySelector(".seat-score").value = seat?.score ?? "";
+  });
+  updateSeatPreview();
+}
+
+function setEditingMatch(matchId) {
+  const match = state.matches.find((entry) => entry.id === matchId);
+  if (!match) return;
+  editingMatchId = matchId;
+  setView("input");
+  setSeatForm(match);
+  renderEditState();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function clearEditingMatch() {
+  editingMatchId = null;
+  els.matchForm.reset();
+  setSeatForm();
+  renderEditState();
+}
+
+function renderEditState() {
+  const editing = Boolean(editingMatchId);
+  els.editNotice.hidden = !editing;
+  els.cancelEditButton.hidden = !editing;
+  els.submitMatchButton.textContent = editing ? "修正を保存" : "スコアを登録";
+}
+
 function renderStandings() {
   const rows = aggregateStandings();
   els.standingsBody.innerHTML = "";
@@ -214,9 +259,13 @@ function renderHistory() {
             .join("")}
         </div>
       </div>
-      <button class="icon-button" type="button" aria-label="半荘を削除">×</button>
+      <div class="history-actions">
+        <button class="ghost-button edit-match-button" type="button">修正</button>
+        <button class="icon-button delete-match-button" type="button" aria-label="半荘を削除">×</button>
+      </div>
     `;
-    item.querySelector("button").addEventListener("click", () => removeMatch(match.id));
+    item.querySelector(".edit-match-button").addEventListener("click", () => setEditingMatch(match.id));
+    item.querySelector(".delete-match-button").addEventListener("click", () => removeMatch(match.id));
     els.matchHistory.append(item);
   });
 }
@@ -225,11 +274,12 @@ function updateSeatPreview() {
   const rows = [...document.querySelectorAll(".seat-row")];
   const seats = rows.map((row) => ({
     row,
+    rawScore: row.querySelector(".seat-score").value,
     score: Number(row.querySelector(".seat-score").value || 0),
   }));
 
   rankSeats(seats).forEach((seat) => {
-    seat.row.querySelector(".seat-preview").textContent = formatPoint(seat.point);
+    seat.row.querySelector(".seat-preview").textContent = seat.rawScore === "" ? "未入力" : formatPoint(seat.point);
   });
 }
 
@@ -239,6 +289,8 @@ function renderAll() {
   renderSeats();
   renderStandings();
   renderHistory();
+  renderEditState();
+  setView(activeView);
 }
 
 function removePlayer(playerId) {
@@ -253,6 +305,9 @@ function removePlayer(playerId) {
 }
 
 function removeMatch(matchId) {
+  if (editingMatchId === matchId) {
+    clearEditingMatch();
+  }
   state.matches = state.matches.filter((match) => match.id !== matchId);
   saveState();
   renderAll();
@@ -290,6 +345,32 @@ function collectMatchForm() {
     createdAt: new Date().toISOString(),
     seats,
   };
+}
+
+function saveMatchFromForm() {
+  const match = collectMatchForm();
+  if (editingMatchId) {
+    state.matches = state.matches.map((entry) =>
+      entry.id === editingMatchId ? { ...match, id: editingMatchId, createdAt: entry.createdAt } : entry,
+    );
+    editingMatchId = null;
+  } else {
+    state.matches.push(match);
+  }
+  saveState();
+  els.matchForm.reset();
+  renderAll();
+}
+
+function setView(view) {
+  activeView = view;
+  const isRanking = view === "ranking";
+  els.inputPage.classList.toggle("active", !isRanking);
+  els.rankingPage.classList.toggle("active", isRanking);
+  els.inputTab.classList.toggle("active", !isRanking);
+  els.rankingTab.classList.toggle("active", isRanking);
+  els.inputTab.setAttribute("aria-selected", String(!isRanking));
+  els.rankingTab.setAttribute("aria-selected", String(isRanking));
 }
 
 function escapeHtml(value) {
@@ -414,11 +495,13 @@ function importCsv(text) {
 
   imported.matches = imported.matches.filter((match) => match.seats.length === 4).map(({ key, ...match }) => match);
   state = imported;
+  editingMatchId = null;
   saveState();
   renderAll();
 }
 
 function loadSample() {
+  editingMatchId = null;
   state = {
     settings: {
       ...FIXED_SETTINGS,
@@ -468,14 +551,15 @@ els.playerForm.addEventListener("submit", (event) => {
 els.matchForm.addEventListener("submit", (event) => {
   event.preventDefault();
   try {
-    state.matches.push(collectMatchForm());
-    saveState();
-    els.matchForm.reset();
-    renderAll();
+    saveMatchFromForm();
   } catch (error) {
     alert(error.message);
   }
 });
+
+els.inputTab.addEventListener("click", () => setView("input"));
+els.rankingTab.addEventListener("click", () => setView("ranking"));
+els.cancelEditButton.addEventListener("click", clearEditingMatch);
 
 els.exportButton.addEventListener("click", exportCsv);
 els.importInput.addEventListener("change", async (event) => {
@@ -487,6 +571,7 @@ els.importInput.addEventListener("change", async (event) => {
 els.sampleButton.addEventListener("click", loadSample);
 els.resetButton.addEventListener("click", () => {
   if (!confirm("保存済みの選手と半荘履歴をすべて削除しますか？")) return;
+  editingMatchId = null;
   state = structuredClone(defaultState);
   saveState();
   renderAll();
