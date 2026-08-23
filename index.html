@@ -8,7 +8,7 @@
       name="description"
       content="麻雀大会の選手、半荘結果、順位点、合計ポイントをブラウザだけで集計できます。"
     />
-    <link rel="stylesheet" href="./style.css?v=20260824-no-sample" />
+    <link rel="stylesheet" href="./style.css?v=20260824-no-csv" />
   </head>
   <body>
     <header class="app-header">
@@ -80,12 +80,6 @@
         <section class="panel standings-panel" aria-labelledby="standingsHeading">
           <div class="section-title">
             <h2 id="standingsHeading">成績ランキング</h2>
-            <div class="export-actions">
-              <label class="file-button">
-                CSV読込
-                <input id="importInput" type="file" accept=".csv,text/csv" />
-              </label>
-            </div>
           </div>
           <div class="table-wrap">
             <table>
@@ -119,6 +113,6 @@
       </div>
     </template>
 
-    <script src="./app.js?v=20260824-no-sample" defer></script>
+    <script src="./app.js?v=20260824-no-csv" defer></script>
   </body>
 </html>

@@ -39,8 +39,7 @@ select {
   font: inherit;
 }
 
-button,
-.file-button {
+button {
   border: 0;
   border-radius: 8px;
   cursor: pointer;
@@ -221,8 +220,7 @@ select:focus {
   padding: 0.65rem 1rem;
 }
 
-.ghost-button,
-.file-button {
+.ghost-button {
   display: inline-grid;
   min-height: 2.6rem;
   place-items: center;
@@ -237,10 +235,6 @@ select:focus {
   background: #fff1ef;
   color: var(--danger);
   padding: 0.55rem 0.8rem;
-}
-
-.file-button input {
-  display: none;
 }
 
 .chip-list {

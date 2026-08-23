@@ -37,7 +37,6 @@ const els = {
   editNotice: document.querySelector("#editNotice"),
   submitMatchButton: document.querySelector("#submitMatchButton"),
   cancelEditButton: document.querySelector("#cancelEditButton"),
-  importInput: document.querySelector("#importInput"),
 };
 
 function loadState() {
@@ -403,88 +402,6 @@ function escapeHtml(value) {
   });
 }
 
-function parseCsv(text) {
-  const rows = [];
-  let cell = "";
-  let row = [];
-  let quoted = false;
-
-  for (let index = 0; index < text.length; index += 1) {
-    const char = text[index];
-    const next = text[index + 1];
-    if (char === '"' && quoted && next === '"') {
-      cell += '"';
-      index += 1;
-    } else if (char === '"') {
-      quoted = !quoted;
-    } else if (char === "," && !quoted) {
-      row.push(cell);
-      cell = "";
-    } else if ((char === "\n" || char === "\r") && !quoted) {
-      if (char === "\r" && next === "\n") index += 1;
-      row.push(cell);
-      if (row.some((value) => value !== "")) rows.push(row);
-      row = [];
-      cell = "";
-    } else {
-      cell += char;
-    }
-  }
-  row.push(cell);
-  if (row.some((value) => value !== "")) rows.push(row);
-  return rows;
-}
-
-function importCsv(text) {
-  const rows = parseCsv(text.replace(/^\uFEFF/, ""));
-  const body = rows.slice(1);
-  const imported = structuredClone(defaultState);
-  const playersByName = new Map();
-  let currentMatch = null;
-
-  body.forEach((row) => {
-    const [type, tournament, returnScore, uma1, uma2, uma3, uma4, table, memo, player, score] = row;
-    if (type === "settings") {
-      imported.settings = {
-        tournamentName: tournament || "麻雀大会",
-        returnScore: Number(returnScore || 30000),
-        uma: [Number(uma1 || 50), Number(uma2 || 10), Number(uma3 || -10), Number(uma4 || -30)],
-      };
-    }
-    if (type === "player" && player) {
-      const record = { id: crypto.randomUUID(), name: player };
-      imported.players.push(record);
-      playersByName.set(player, record.id);
-    }
-    if (type === "match" && player) {
-      if (!playersByName.has(player)) {
-        const record = { id: crypto.randomUUID(), name: player };
-        imported.players.push(record);
-        playersByName.set(player, record.id);
-      }
-      const key = `${table}|${memo}`;
-      if (!currentMatch || currentMatch.key !== key || currentMatch.seats.length === 4) {
-        currentMatch = {
-          key,
-          id: crypto.randomUUID(),
-          tableName: table,
-          memo,
-          createdAt: new Date().toISOString(),
-          seats: [],
-        };
-        imported.matches.push(currentMatch);
-      }
-      currentMatch.seats.push({ playerId: playersByName.get(player), score: Number(score) });
-    }
-  });
-
-  imported.matches = imported.matches.filter((match) => match.seats.length === 4).map(({ key, ...match }) => match);
-  state = imported;
-  editingMatchId = null;
-  saveState();
-  renderAll();
-}
-
 els.playerForm.addEventListener("submit", (event) => {
   event.preventDefault();
   addPlayer(els.playerName.value);
@@ -504,11 +421,4 @@ els.matchForm.addEventListener("submit", (event) => {
 els.inputTab.addEventListener("click", () => setView("input"));
 els.rankingTab.addEventListener("click", () => setView("ranking"));
 els.cancelEditButton.addEventListener("click", clearEditingMatch);
-
-els.importInput.addEventListener("change", async (event) => {
-  const file = event.target.files[0];
-  if (!file) return;
-  importCsv(await file.text());
-  event.target.value = "";
-});
 renderAll();
