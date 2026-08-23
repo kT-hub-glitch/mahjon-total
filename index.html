@@ -8,7 +8,7 @@
       name="description"
       content="麻雀大会の選手、半荘結果、順位点、合計ポイントをブラウザだけで集計できます。"
     />
-    <link rel="stylesheet" href="./style.css?v=20260824-rank-counts" />
+    <link rel="stylesheet" href="./style.css?v=20260824-no-memo" />
   </head>
   <body>
     <header class="app-header">
@@ -57,12 +57,6 @@
             <span id="saveStatus" class="status-pill">保存済み</span>
           </div>
           <form id="matchForm" class="match-form">
-            <div class="match-meta">
-              <label>
-                メモ
-                <input id="matchMemo" type="text" placeholder="第1回戦など" autocomplete="off" inputmode="text" />
-              </label>
-            </div>
             <div id="seatRows" class="seat-rows"></div>
             <div id="scoreTotal" class="score-total" aria-live="polite">
               <span>合計</span>
@@ -128,6 +122,6 @@
       </div>
     </template>
 
-    <script src="./app.js?v=20260824-rank-counts" defer></script>
+    <script src="./app.js?v=20260824-no-memo" defer></script>
   </body>
 </html>

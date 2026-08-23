@@ -291,12 +291,6 @@ select:focus {
   font-weight: 800;
 }
 
-.match-meta {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.75rem;
-}
-
 .seat-rows {
   display: grid;
   gap: 0.55rem;
@@ -500,7 +494,6 @@ tbody tr:first-child td {
     grid-template-columns: 1fr;
   }
 
-  .match-meta,
   .seat-row {
     grid-template-columns: 1fr;
   }

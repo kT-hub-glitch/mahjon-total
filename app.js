@@ -27,7 +27,6 @@ const els = {
   playerList: document.querySelector("#playerList"),
   playerCount: document.querySelector("#playerCount"),
   matchForm: document.querySelector("#matchForm"),
-  matchMemo: document.querySelector("#matchMemo"),
   matchCount: document.querySelector("#matchCount"),
   seatRows: document.querySelector("#seatRows"),
   scoreTotal: document.querySelector("#scoreTotal"),
@@ -169,7 +168,6 @@ function renderSeats() {
 }
 
 function setSeatForm(match = null) {
-  els.matchMemo.value = match?.memo || "";
   const rows = [...document.querySelectorAll(".seat-row")];
   rows.forEach((row, index) => {
     const seat = match?.seats[index];
@@ -246,7 +244,8 @@ function renderHistory() {
     const ranked = rankSeats(match.seats);
     const item = document.createElement("article");
     item.className = "history-item";
-    const title = match.memo || "半荘";
+    const matchNumber = state.matches.findIndex((entry) => entry.id === match.id) + 1;
+    const title = `第${matchNumber}半荘`;
     item.innerHTML = `
       <div>
         <p class="history-title">${escapeHtml(title || "半荘")}</p>
@@ -366,7 +365,7 @@ function collectMatchForm() {
   return {
     id: crypto.randomUUID(),
     tableName: "",
-    memo: els.matchMemo.value.trim(),
+    memo: "",
     createdAt: new Date().toISOString(),
     seats,
   };
@@ -502,7 +501,7 @@ function loadSample() {
     {
       id: crypto.randomUUID(),
       tableName: "",
-      memo: "第1回戦",
+      memo: "",
       createdAt: new Date().toISOString(),
       seats: [
         { playerId: id("高橋"), score: 43200 },
@@ -514,7 +513,7 @@ function loadSample() {
     {
       id: crypto.randomUUID(),
       tableName: "",
-      memo: "第1回戦",
+      memo: "",
       createdAt: new Date().toISOString(),
       seats: [
         { playerId: id("伊藤"), score: 38100 },
