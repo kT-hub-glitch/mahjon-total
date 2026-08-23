@@ -8,7 +8,7 @@
       name="description"
       content="麻雀大会の選手、半荘結果、順位点、合計ポイントをブラウザだけで集計できます。"
     />
-    <link rel="stylesheet" href="./style.css?v=20260824-no-csv" />
+    <link rel="stylesheet" href="./style.css?v=20260824-supabase" />
   </head>
   <body>
     <header class="app-header">
@@ -51,7 +51,7 @@
               <h2 id="entryHeading">スコア入力</h2>
               <p id="editNotice" class="edit-notice" hidden>半荘履歴を修正中です。</p>
             </div>
-            <span id="saveStatus" class="status-pill">保存済み</span>
+            <span id="saveStatus" class="status-pill">接続中</span>
           </div>
           <form id="matchForm" class="match-form">
             <div id="seatRows" class="seat-rows"></div>
@@ -113,6 +113,7 @@
       </div>
     </template>
 
-    <script src="./app.js?v=20260824-no-csv" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./app.js?v=20260824-supabase" defer></script>
   </body>
 </html>

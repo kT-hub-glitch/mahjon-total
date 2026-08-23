@@ -180,6 +180,10 @@ h2 {
   white-space: nowrap;
 }
 
+.status-pill.error {
+  color: var(--danger);
+}
+
 label {
   display: grid;
   gap: 0.35rem;

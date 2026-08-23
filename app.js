@@ -1,4 +1,5 @@
-const STORAGE_KEY = "mahjong-tournament-scoreboard-v1";
+const SUPABASE_URL = "https://lrxsgvqazsqxsmpylhoy.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_nsg85bJVjJjWcZNmgF7y3Q_x7_3YZYU";
 const REQUIRED_TOTAL_SCORE = 100000;
 const FIXED_SETTINGS = {
   tournamentName: "麻雀大会",
@@ -13,9 +14,10 @@ const defaultState = {
   matches: [],
 };
 
-let state = loadState();
+let state = structuredClone(defaultState);
 let activeView = "input";
 let editingMatchId = null;
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 const els = {
   inputTab: document.querySelector("#inputTab"),
@@ -39,18 +41,44 @@ const els = {
   cancelEditButton: document.querySelector("#cancelEditButton"),
 };
 
-function loadState() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    return saved ? { ...defaultState, ...saved } : structuredClone(defaultState);
-  } catch {
-    return structuredClone(defaultState);
-  }
+function setStatus(text, isError = false) {
+  els.saveStatus.textContent = text;
+  els.saveStatus.classList.toggle("error", isError);
 }
 
-function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  els.saveStatus.textContent = "保存済み";
+async function loadRemoteState({ keepForm = false } = {}) {
+  setStatus("同期中");
+  const [{ data: participants, error: playersError }, { data: matches, error: matchesError }] = await Promise.all([
+    db.from("participants").select("id,name,created_at").order("created_at", { ascending: true }),
+    db.from("matches").select("id,created_at,scores(participant_id,score)").order("created_at", { ascending: true }),
+  ]);
+
+  if (playersError || matchesError) {
+    console.error(playersError || matchesError);
+    setStatus("接続エラー", true);
+    return;
+  }
+
+  state = {
+    settings: structuredClone(FIXED_SETTINGS),
+    players: (participants || []).map((player) => ({
+      id: player.id,
+      name: player.name,
+    })),
+    matches: (matches || []).map((match) => ({
+      id: match.id,
+      tableName: "",
+      memo: "",
+      createdAt: match.created_at,
+      seats: (match.scores || []).map((score) => ({
+        playerId: score.participant_id,
+        score: Number(score.score),
+      })),
+    })),
+  };
+
+  renderAll({ keepForm });
+  setStatus("同期済み");
 }
 
 function playerNameById(id) {
@@ -301,46 +329,66 @@ function updateScoreTotal(seats) {
   els.scoreTotal.querySelector("small").textContent = complete || total > 0 ? message : "100,000点にしてください";
 }
 
-function renderAll() {
+function renderAll({ keepForm = false } = {}) {
   renderSettings();
   renderPlayers();
-  renderSeats();
+  if (!keepForm) {
+    renderSeats();
+  }
   renderStandings();
   renderHistory();
   renderEditState();
   setView(activeView);
 }
 
-function removePlayer(playerId) {
+async function removePlayer(playerId) {
   const used = state.matches.some((match) => match.seats.some((seat) => seat.playerId === playerId));
   if (used) {
     alert("半荘履歴に使われている選手は削除できません。先に該当する半荘を削除してください。");
     return;
   }
-  state.players = state.players.filter((player) => player.id !== playerId);
-  saveState();
-  renderAll();
+  setStatus("削除中");
+  const { error } = await db.from("participants").delete().eq("id", playerId);
+  if (error) {
+    console.error(error);
+    alert("選手を削除できませんでした。");
+    setStatus("保存エラー", true);
+    return;
+  }
+  await loadRemoteState();
 }
 
-function removeMatch(matchId) {
+async function removeMatch(matchId) {
   if (editingMatchId === matchId) {
     clearEditingMatch();
   }
-  state.matches = state.matches.filter((match) => match.id !== matchId);
-  saveState();
-  renderAll();
+  setStatus("削除中");
+  const { error } = await db.from("matches").delete().eq("id", matchId);
+  if (error) {
+    console.error(error);
+    alert("半荘を削除できませんでした。");
+    setStatus("保存エラー", true);
+    return;
+  }
+  await loadRemoteState();
 }
 
-function addPlayer(name) {
+async function addPlayer(name) {
   const trimmed = name.trim();
   if (!trimmed) return;
   if (state.players.some((player) => player.name === trimmed)) {
     alert("同じ名前の選手がいます。");
     return;
   }
-  state.players.push({ id: crypto.randomUUID(), name: trimmed });
-  saveState();
-  renderAll();
+  setStatus("保存中");
+  const { error } = await db.from("participants").insert({ name: trimmed });
+  if (error) {
+    console.error(error);
+    alert("選手を追加できませんでした。");
+    setStatus("保存エラー", true);
+    return;
+  }
+  await loadRemoteState();
 }
 
 function collectMatchForm() {
@@ -369,19 +417,57 @@ function collectMatchForm() {
   };
 }
 
-function saveMatchFromForm() {
+async function saveMatchFromForm() {
   const match = collectMatchForm();
   if (editingMatchId) {
-    state.matches = state.matches.map((entry) =>
-      entry.id === editingMatchId ? { ...match, id: editingMatchId, createdAt: entry.createdAt } : entry,
+    setStatus("修正中");
+    const { error: deleteError } = await db.from("scores").delete().eq("match_id", editingMatchId);
+    if (deleteError) {
+      console.error(deleteError);
+      alert("修正前のスコアを更新できませんでした。");
+      setStatus("保存エラー", true);
+      return;
+    }
+    const { error: insertError } = await db.from("scores").insert(
+      match.seats.map((seat) => ({
+        match_id: editingMatchId,
+        participant_id: seat.playerId,
+        score: seat.score,
+      })),
     );
+    if (insertError) {
+      console.error(insertError);
+      alert("修正したスコアを保存できませんでした。");
+      setStatus("保存エラー", true);
+      return;
+    }
     editingMatchId = null;
   } else {
-    state.matches.push(match);
+    setStatus("保存中");
+    const { data: createdMatch, error: matchError } = await db.from("matches").insert({}).select("id").single();
+    if (matchError) {
+      console.error(matchError);
+      alert("半荘を作成できませんでした。");
+      setStatus("保存エラー", true);
+      return;
+    }
+    const { error: scoresError } = await db.from("scores").insert(
+      match.seats.map((seat) => ({
+        match_id: createdMatch.id,
+        participant_id: seat.playerId,
+        score: seat.score,
+      })),
+    );
+    if (scoresError) {
+      console.error(scoresError);
+      await db.from("matches").delete().eq("id", createdMatch.id);
+      alert("スコアを保存できませんでした。");
+      setStatus("保存エラー", true);
+      return;
+    }
   }
-  saveState();
   els.matchForm.reset();
-  renderAll();
+  await loadRemoteState();
 }
 
 function setView(view) {
@@ -402,17 +488,17 @@ function escapeHtml(value) {
   });
 }
 
-els.playerForm.addEventListener("submit", (event) => {
+els.playerForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  addPlayer(els.playerName.value);
+  await addPlayer(els.playerName.value);
   els.playerName.value = "";
   els.playerName.focus();
 });
 
-els.matchForm.addEventListener("submit", (event) => {
+els.matchForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
-    saveMatchFromForm();
+    await saveMatchFromForm();
   } catch (error) {
     alert(error.message);
   }
@@ -421,4 +507,11 @@ els.matchForm.addEventListener("submit", (event) => {
 els.inputTab.addEventListener("click", () => setView("input"));
 els.rankingTab.addEventListener("click", () => setView("ranking"));
 els.cancelEditButton.addEventListener("click", clearEditingMatch);
+
 renderAll();
+loadRemoteState();
+setInterval(() => {
+  if (document.visibilityState === "visible" && !editingMatchId) {
+    loadRemoteState({ keepForm: true });
+  }
+}, 5000);
