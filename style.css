@@ -29,6 +29,10 @@ body {
     sans-serif;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 button,
 input,
 select {
@@ -151,7 +155,7 @@ label {
 input,
 select {
   width: 100%;
-  min-height: 2.5rem;
+  min-height: 2.75rem;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fff;
@@ -176,13 +180,14 @@ select:focus {
 .inline-form button {
   background: var(--accent);
   color: #fff;
+  min-height: 2.75rem;
   padding: 0.65rem 1rem;
 }
 
 .ghost-button,
 .file-button {
   display: inline-grid;
-  min-height: 2.35rem;
+  min-height: 2.6rem;
   place-items: center;
   border: 1px solid var(--line);
   background: #fff;
@@ -191,7 +196,7 @@ select:focus {
 }
 
 .danger-button {
-  min-height: 2.35rem;
+  min-height: 2.6rem;
   background: #fff1ef;
   color: var(--danger);
   padding: 0.55rem 0.8rem;
@@ -345,10 +350,48 @@ tbody tr:first-child td {
 }
 
 @media (max-width: 620px) {
+  body {
+    background: var(--bg);
+  }
+
   .app-header,
   .section-title {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .app-header {
+    gap: 0.85rem;
+    padding-top: 1.1rem;
+  }
+
+  h1 {
+    font-size: 1.7rem;
+  }
+
+  .header-actions,
+  .export-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .app-shell {
+    gap: 0.75rem;
+    padding-bottom: 1rem;
+  }
+
+  .panel {
+    padding: 0.85rem;
+  }
+
+  .rule-strip {
+    display: grid;
+    gap: 0.35rem;
+    font-size: 0.84rem;
+  }
+
+  .inline-form {
+    grid-template-columns: 1fr;
   }
 
   .table-meta,
@@ -356,7 +399,70 @@ tbody tr:first-child td {
     grid-template-columns: 1fr;
   }
 
+  .seat-row {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fbfcfa;
+    padding: 0.65rem;
+  }
+
+  .primary-button {
+    position: sticky;
+    bottom: 0.75rem;
+    box-shadow: 0 10px 22px rgba(18, 124, 99, 0.22);
+  }
+
   .seat-preview {
     text-align: left;
+  }
+
+  table {
+    min-width: 0;
+  }
+
+  thead {
+    display: none;
+  }
+
+  tbody,
+  tr,
+  td {
+    display: block;
+  }
+
+  tbody tr {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    margin-bottom: 0.65rem;
+    padding: 0.3rem 0;
+    background: #fff;
+  }
+
+  th,
+  td {
+    border-bottom: 0;
+  }
+
+  td {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.42rem 0.7rem;
+    text-align: right;
+  }
+
+  td::before {
+    color: var(--muted);
+    content: attr(data-label);
+    font-size: 0.78rem;
+    font-weight: 800;
+  }
+
+  td:nth-child(2) {
+    text-align: right;
+  }
+
+  .history-item {
+    grid-template-columns: 1fr;
   }
 }

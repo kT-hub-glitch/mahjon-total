@@ -23,10 +23,12 @@
     </header>
 
     <main class="app-shell">
-      <section class="rule-strip" aria-label="固定ルール">
-        <span>固定ルール</span>
+      <section class="rule-strip" aria-label="Mリーグ固定ルール">
+        <span>Mリーグルール</span>
+        <strong>25,000点持ち</strong>
         <strong>返し 30000</strong>
         <strong>順位点 +50 / +10 / -10 / -30</strong>
+        <strong>同点は順位点を分け</strong>
       </section>
 
       <section class="panel players-panel" aria-labelledby="playersHeading">
@@ -50,11 +52,11 @@
           <div class="table-meta">
             <label>
               卓
-              <input id="tableName" type="text" placeholder="A卓" autocomplete="off" />
+              <input id="tableName" type="text" placeholder="A卓" autocomplete="off" inputmode="text" />
             </label>
             <label>
               メモ
-              <input id="matchMemo" type="text" placeholder="第1回戦など" autocomplete="off" />
+              <input id="matchMemo" type="text" placeholder="第1回戦など" autocomplete="off" inputmode="text" />
             </label>
           </div>
           <div id="seatRows" class="seat-rows"></div>

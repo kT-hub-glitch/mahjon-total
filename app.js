@@ -1,6 +1,7 @@
 const STORAGE_KEY = "mahjong-tournament-scoreboard-v1";
 const FIXED_SETTINGS = {
   tournamentName: "麻雀大会",
+  startScore: 25000,
   returnScore: 30000,
   uma: [50, 10, -10, -30],
 };
@@ -55,15 +56,34 @@ function formatPoint(value) {
   return `${value.toFixed(1)} pt`;
 }
 
-function scoreToPoint(score, rank) {
+function scoreToPoint(score, rankPoint) {
   const base = (Number(score) - Number(state.settings.returnScore)) / 1000;
-  return base + Number(state.settings.uma[rank - 1] || 0);
+  return base + Number(rankPoint || 0);
 }
 
 function rankSeats(seats) {
-  return [...seats]
-    .sort((a, b) => Number(b.score) - Number(a.score))
-    .map((seat, index) => ({ ...seat, rank: index + 1, point: scoreToPoint(seat.score, index + 1) }));
+  const sorted = [...seats].sort((a, b) => Number(b.score) - Number(a.score));
+  const ranked = [];
+  let index = 0;
+
+  while (index < sorted.length) {
+    const sameScoreSeats = sorted.filter((seat) => Number(seat.score) === Number(sorted[index].score));
+    const rank = index + 1;
+    const rankPoints = state.settings.uma.slice(index, index + sameScoreSeats.length);
+    const sharedRankPoint = rankPoints.reduce((sum, point) => sum + Number(point), 0) / sameScoreSeats.length;
+    sameScoreSeats.forEach((seat) => {
+      ranked.push({
+        ...seat,
+        rank,
+        rankEnd: index + sameScoreSeats.length,
+        rankLabel: `${rank}位${sameScoreSeats.length > 1 ? "タイ" : ""}`,
+        point: scoreToPoint(seat.score, sharedRankPoint),
+      });
+    });
+    index += sameScoreSeats.length;
+  }
+
+  return ranked;
 }
 
 function aggregateStandings() {
@@ -86,7 +106,7 @@ function aggregateStandings() {
       row.total += seat.point;
       row.rawScore += Number(seat.score);
       if (seat.rank === 1) row.firsts += 1;
-      if (seat.rank === 4) row.lasts += 1;
+      if (seat.rankEnd === 4) row.lasts += 1;
     });
   });
 
@@ -153,14 +173,14 @@ function renderStandings() {
     const tr = document.createElement("tr");
     const average = row.games ? row.total / row.games : 0;
     tr.innerHTML = `
-      <td>${index + 1}</td>
-      <td>${escapeHtml(row.name)}</td>
-      <td>${row.games}</td>
-      <td>${formatPoint(row.total)}</td>
-      <td>${formatPoint(average)}</td>
-      <td>${row.firsts}</td>
-      <td>${row.lasts}</td>
-      <td>${row.rawScore.toLocaleString("ja-JP")}</td>
+      <td data-label="順位">${index + 1}</td>
+      <td data-label="選手">${escapeHtml(row.name)}</td>
+      <td data-label="半荘">${row.games}</td>
+      <td data-label="合計">${formatPoint(row.total)}</td>
+      <td data-label="平均">${formatPoint(average)}</td>
+      <td data-label="トップ">${row.firsts}</td>
+      <td data-label="ラス">${row.lasts}</td>
+      <td data-label="素点合計">${row.rawScore.toLocaleString("ja-JP")}</td>
     `;
     els.standingsBody.append(tr);
   });
@@ -187,7 +207,7 @@ function renderHistory() {
           ${ranked
             .map(
               (seat) =>
-                `<span class="score-badge">${seat.rank}位 ${escapeHtml(playerNameById(seat.playerId))} ${Number(
+                `<span class="score-badge">${seat.rankLabel} ${escapeHtml(playerNameById(seat.playerId))} ${Number(
                   seat.score,
                 ).toLocaleString("ja-JP")} / ${formatPoint(seat.point)}</span>`,
             )
@@ -203,15 +223,13 @@ function renderHistory() {
 
 function updateSeatPreview() {
   const rows = [...document.querySelectorAll(".seat-row")];
-  const seats = rows
-    .map((row) => ({
-      row,
-      score: Number(row.querySelector(".seat-score").value || 0),
-    }))
-    .sort((a, b) => b.score - a.score);
+  const seats = rows.map((row) => ({
+    row,
+    score: Number(row.querySelector(".seat-score").value || 0),
+  }));
 
-  seats.forEach((seat, index) => {
-    seat.row.querySelector(".seat-preview").textContent = formatPoint(scoreToPoint(seat.score, index + 1));
+  rankSeats(seats).forEach((seat) => {
+    seat.row.querySelector(".seat-preview").textContent = formatPoint(seat.point);
   });
 }
 
