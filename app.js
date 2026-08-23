@@ -24,6 +24,7 @@ const els = {
   rankingTab: document.querySelector("#rankingTab"),
   inputPage: document.querySelector("#inputPage"),
   rankingPage: document.querySelector("#rankingPage"),
+  scoreEntryPanel: document.querySelector("#scoreEntryPanel"),
   playerForm: document.querySelector("#playerForm"),
   playerName: document.querySelector("#playerName"),
   playerList: document.querySelector("#playerList"),
@@ -214,7 +215,7 @@ function setEditingMatch(matchId) {
   setView("input");
   setSeatForm(match);
   renderEditState();
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  els.scoreEntryPanel.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function clearEditingMatch() {
