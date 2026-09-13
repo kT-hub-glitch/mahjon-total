@@ -1,6 +1,48 @@
 const SUPABASE_URL = "https://irxsgvqazsqxsmpylhoy.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_nsg85bJVjJjWcZNmgF7y3Q_x7_3YZYU";
 const REQUIRED_TOTAL_SCORE = 100000;
+const FIXED_PLAYER_NAMES = [
+  "雛呑ちの",
+  "猫又めいど",
+  "こみなと",
+  "あおいしもん",
+  "AXZ",
+  "一期一会",
+  "天然芝w",
+  "鉄雑魚さん",
+  "山さん",
+  "せれん",
+  "きくりん",
+  "ベリ",
+  "コータ",
+  "ちぃーちぃー",
+  "ひょ",
+  "検察側の証人",
+  "ぐでかご@VPL",
+  "なぽ",
+  "ムック08",
+  "草原",
+  "のりごはん",
+  "ガル",
+  "confetti",
+  "シャオロン",
+  "ぴっぴ",
+  "たんたん",
+  "るいるい",
+  "かのっち☆",
+  "しぐしぐ",
+  "スピナシア",
+  "茶慈 庵",
+  "いたう",
+  "あわ",
+  "初心者の無銘",
+  "とり",
+  "星屑マル",
+  "うしんた",
+  "すりぴ",
+  "ドラどらごん",
+  "よっぴー",
+];
 const FIXED_SETTINGS = {
   tournamentName: "麻雀大会",
   startScore: 25000,
@@ -10,13 +52,19 @@ const FIXED_SETTINGS = {
 
 const defaultState = {
   settings: FIXED_SETTINGS,
-  players: [],
+  players: FIXED_PLAYER_NAMES.map((name, index) => ({
+    id: `fixed-player-${index + 1}`,
+    name,
+  })),
   matches: [],
 };
 
 let state = structuredClone(defaultState);
 let activeView = "input";
 let editingMatchId = null;
+let fixedRosterReady = false;
+let playerNamesById = new Map(state.players.map((player) => [player.id, player.name]));
+const eventSchedule = window.EVENT_SCHEDULE?.rounds || [];
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 const els = {
@@ -25,8 +73,6 @@ const els = {
   inputPage: document.querySelector("#inputPage"),
   rankingPage: document.querySelector("#rankingPage"),
   scoreEntryPanel: document.querySelector("#scoreEntryPanel"),
-  playerForm: document.querySelector("#playerForm"),
-  playerName: document.querySelector("#playerName"),
   playerList: document.querySelector("#playerList"),
   playerCount: document.querySelector("#playerCount"),
   matchForm: document.querySelector("#matchForm"),
@@ -55,6 +101,13 @@ function setStatus(text, isError = false) {
 
 async function loadRemoteState({ keepForm = false } = {}) {
   setStatus("同期中");
+  const rosterError = await ensureFixedPlayers();
+  if (rosterError) {
+    console.error(rosterError);
+    setStatus("名簿同期エラー", true);
+    return;
+  }
+
   const [{ data: participants, error: playersError }, { data: matches, error: matchesError }] = await Promise.all([
     db.from("participants").select("id,name,created_at").order("created_at", { ascending: true }),
     db
@@ -69,12 +122,21 @@ async function loadRemoteState({ keepForm = false } = {}) {
     return;
   }
 
+  playerNamesById = new Map((participants || []).map((player) => [player.id, player.name]));
   state = {
     settings: structuredClone(FIXED_SETTINGS),
-    players: (participants || []).map((player) => ({
-      id: player.id,
-      name: player.name,
-    })),
+    players: (participants || [])
+      .filter((player) => FIXED_PLAYER_NAMES.includes(player.name))
+      .map((player) => ({
+        id: player.id,
+        name: player.name,
+      }))
+      .sort((a, b) => {
+        const aIndex = FIXED_PLAYER_NAMES.indexOf(a.name);
+        const bIndex = FIXED_PLAYER_NAMES.indexOf(b.name);
+        return (aIndex === -1 ? Number.MAX_SAFE_INTEGER : aIndex) -
+          (bIndex === -1 ? Number.MAX_SAFE_INTEGER : bIndex);
+      }),
     matches: sortMatches(
       (matches || []).map((match) => ({
         id: match.id,
@@ -94,8 +156,27 @@ async function loadRemoteState({ keepForm = false } = {}) {
   setStatus("");
 }
 
+async function ensureFixedPlayers() {
+  if (fixedRosterReady) return null;
+
+  const { data: participants, error: selectError } = await db.from("participants").select("name");
+  if (selectError) return selectError;
+
+  const existingNames = new Set((participants || []).map((player) => player.name));
+  const missingNames = FIXED_PLAYER_NAMES.filter((name) => !existingNames.has(name));
+  if (missingNames.length > 0) {
+    const { error: insertError } = await db
+      .from("participants")
+      .insert(missingNames.map((name) => ({ name })));
+    if (insertError) return insertError;
+  }
+
+  fixedRosterReady = true;
+  return null;
+}
+
 function playerNameById(id) {
-  return state.players.find((player) => player.id === id)?.name || "不明";
+  return playerNamesById.get(id) || "不明";
 }
 
 function formatPoint(value) {
@@ -177,7 +258,7 @@ function renderPlayers() {
   els.playerList.innerHTML = "";
 
   if (state.players.length === 0) {
-    els.playerList.innerHTML = '<p class="empty-state">選手を追加してください。</p>';
+    els.playerList.innerHTML = '<p class="empty-state">選手が登録されていません。</p>';
     return;
   }
 
@@ -185,13 +266,6 @@ function renderPlayers() {
     const chip = document.createElement("span");
     chip.className = "chip";
     chip.textContent = player.name;
-
-    const remove = document.createElement("button");
-    remove.type = "button";
-    remove.textContent = "×";
-    remove.ariaLabel = `${player.name}を削除`;
-    remove.addEventListener("click", () => removePlayer(player.id));
-    chip.append(remove);
     els.playerList.append(chip);
   });
 }
@@ -215,6 +289,23 @@ function renderSeats() {
     });
     els.seatRows.append(row);
   }
+  applyScheduledPlayers();
+  updateSeatOptions();
+  updateSeatPreview();
+}
+
+function applyScheduledPlayers() {
+  const tableName = els.tableName.value;
+  const roundIndex = Number(els.roundNumber.value) - 1;
+  const scheduledNames = eventSchedule[roundIndex]?.[tableName];
+  if (!Array.isArray(scheduledNames) || scheduledNames.length !== 4) return;
+
+  const rows = [...document.querySelectorAll(".seat-row")];
+  scheduledNames.forEach((name, index) => {
+    const player = state.players.find((entry) => entry.name === name);
+    const select = rows[index]?.querySelector(".seat-player");
+    if (player && select) select.value = player.id;
+  });
   updateSeatOptions();
   updateSeatPreview();
 }
@@ -229,6 +320,7 @@ function setSeatForm(match = null) {
     row.querySelector(".seat-score").value = seat?.score ?? "";
   });
   updateMatchMetaOptions();
+  if (!match) applyScheduledPlayers();
   updateSeatOptions();
   updateSeatPreview();
 }
@@ -287,6 +379,11 @@ function updateMatchMetaOptions() {
   [...els.roundNumber.options].forEach((option) => {
     option.disabled = usedCombos.has(`${currentTable}-${Number(option.value)}`);
   });
+}
+
+function handleMatchMetaChange() {
+  updateMatchMetaOptions();
+  applyScheduledPlayers();
 }
 
 function findFirstOpenCombo(usedCombos) {
@@ -472,23 +569,6 @@ function renderAll({ keepForm = false } = {}) {
   setView(activeView);
 }
 
-async function removePlayer(playerId) {
-  const used = state.matches.some((match) => match.seats.some((seat) => seat.playerId === playerId));
-  if (used) {
-    alert("対局履歴に使われている選手は削除できません。先に該当する対局を削除してください。");
-    return;
-  }
-  setStatus("削除中");
-  const { error } = await db.from("participants").delete().eq("id", playerId);
-  if (error) {
-    console.error(error);
-    alert("選手を削除できませんでした。");
-    setStatus("保存エラー", true);
-    return;
-  }
-  await loadRemoteState();
-}
-
 async function removeMatch(matchId) {
   if (editingMatchId === matchId) {
     clearEditingMatch();
@@ -498,24 +578,6 @@ async function removeMatch(matchId) {
   if (error) {
     console.error(error);
     alert("対局を削除できませんでした。");
-    setStatus("保存エラー", true);
-    return;
-  }
-  await loadRemoteState();
-}
-
-async function addPlayer(name) {
-  const trimmed = name.trim();
-  if (!trimmed) return;
-  if (state.players.some((player) => player.name === trimmed)) {
-    alert("同じ名前の選手がいます。");
-    return;
-  }
-  setStatus("保存中");
-  const { error } = await db.from("participants").insert({ name: trimmed });
-  if (error) {
-    console.error(error);
-    alert("選手を追加できませんでした。");
     setStatus("保存エラー", true);
     return;
   }
@@ -651,13 +713,6 @@ function escapeHtml(value) {
   });
 }
 
-els.playerForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  await addPlayer(els.playerName.value);
-  els.playerName.value = "";
-  els.playerName.focus();
-});
-
 els.matchForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
@@ -671,8 +726,8 @@ els.inputTab.addEventListener("click", () => setView("input"));
 els.rankingTab.addEventListener("click", () => setView("ranking"));
 els.cancelEditButton.addEventListener("click", clearEditingMatch);
 els.closeDetailButton.addEventListener("click", () => els.playerDetailDialog.close());
-els.tableName.addEventListener("change", updateMatchMetaOptions);
-els.roundNumber.addEventListener("change", updateMatchMetaOptions);
+els.tableName.addEventListener("change", handleMatchMetaChange);
+els.roundNumber.addEventListener("change", handleMatchMetaChange);
 
 renderAll();
 loadRemoteState();
