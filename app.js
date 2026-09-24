@@ -15,7 +15,7 @@ const FIXED_PLAYER_NAMES = [
   "きくりん",
   "ベリ",
   "コータ",
-  "ちぃーちぃー",
+  "なちぽ",
   "ひょ",
   "検察側の証人",
   "ぐでかご@VPL",
@@ -49,6 +49,9 @@ const FIXED_SETTINGS = {
   returnScore: 30000,
   uma: [50, 10, -10, -30],
 };
+const PLAYER_NAME_MIGRATIONS = [
+  { from: "ちぃーちぃー", to: "なちぽ" },
+];
 
 const defaultState = {
   settings: FIXED_SETTINGS,
@@ -159,8 +162,21 @@ async function loadRemoteState({ keepForm = false } = {}) {
 async function ensureFixedPlayers() {
   if (fixedRosterReady) return null;
 
-  const { data: participants, error: selectError } = await db.from("participants").select("name");
+  const { data: participants, error: selectError } = await db.from("participants").select("id,name");
   if (selectError) return selectError;
+
+  for (const migration of PLAYER_NAME_MIGRATIONS) {
+    const previousPlayer = (participants || []).find((player) => player.name === migration.from);
+    const currentPlayer = (participants || []).find((player) => player.name === migration.to);
+    if (!previousPlayer || currentPlayer) continue;
+
+    const { error: renameError } = await db
+      .from("participants")
+      .update({ name: migration.to })
+      .eq("id", previousPlayer.id);
+    if (renameError) return renameError;
+    previousPlayer.name = migration.to;
+  }
 
   const existingNames = new Set((participants || []).map((player) => player.name));
   const missingNames = FIXED_PLAYER_NAMES.filter((name) => !existingNames.has(name));
