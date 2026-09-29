@@ -107,13 +107,14 @@ h2 {
 }
 
 .standings-panel,
-.history-panel {
+.history-panel,
+.schedule-panel {
   grid-column: 1 / -1;
 }
 
 .view-tabs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.5rem;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -131,6 +132,79 @@ h2 {
 .tab-button.active {
   background: var(--accent);
   color: #fff;
+}
+
+.schedule-round-tabs {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(4rem, 1fr));
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.schedule-round-button {
+  min-height: 2.5rem;
+  border: 1px solid var(--line);
+  background: #f9faf8;
+  color: var(--muted);
+  padding: 0.45rem 0.35rem;
+  font-size: 0.86rem;
+}
+
+.schedule-round-button.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.schedule-list-heading,
+.schedule-row {
+  display: grid;
+  grid-template-columns: 5rem minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.schedule-list-heading {
+  border-bottom: 2px solid var(--line);
+  color: var(--muted);
+  padding: 0.45rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.schedule-row {
+  align-items: center;
+  min-height: 3.8rem;
+  border-bottom: 1px solid var(--line);
+  padding: 0.65rem 0.75rem;
+}
+
+.schedule-row:nth-child(even) {
+  background: #f9faf8;
+}
+
+.schedule-row.guest-table {
+  background: #fff1f4;
+}
+
+.schedule-table-name {
+  color: var(--accent-dark);
+}
+
+.schedule-members {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.schedule-member {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 700;
+}
+
+.schedule-member.guest-name {
+  color: #9b294d;
+  font-weight: 900;
 }
 
 .rule-strip {
@@ -531,6 +605,23 @@ tbody tr:first-child td {
     display: grid;
     gap: 0.35rem;
     font-size: 0.84rem;
+  }
+
+  .schedule-round-tabs {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .schedule-list-heading {
+    display: none;
+  }
+
+  .schedule-row {
+    grid-template-columns: 1fr;
+    gap: 0.45rem;
+  }
+
+  .schedule-members {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .inline-form {

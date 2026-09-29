@@ -65,6 +65,7 @@ const defaultState = {
 
 let state = structuredClone(defaultState);
 let activeView = "input";
+let activeScheduleRound = 1;
 let editingMatchId = null;
 let fixedRosterReady = false;
 let playerNamesById = new Map(state.players.map((player) => [player.id, player.name]));
@@ -73,12 +74,17 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 const els = {
   inputTab: document.querySelector("#inputTab"),
+  scheduleTab: document.querySelector("#scheduleTab"),
   rankingTab: document.querySelector("#rankingTab"),
   inputPage: document.querySelector("#inputPage"),
+  schedulePage: document.querySelector("#schedulePage"),
   rankingPage: document.querySelector("#rankingPage"),
   scoreEntryPanel: document.querySelector("#scoreEntryPanel"),
   playerList: document.querySelector("#playerList"),
   playerCount: document.querySelector("#playerCount"),
+  scheduleRoundTabs: document.querySelector("#scheduleRoundTabs"),
+  scheduleRoundLabel: document.querySelector("#scheduleRoundLabel"),
+  scheduleList: document.querySelector("#scheduleList"),
   matchForm: document.querySelector("#matchForm"),
   tableName: document.querySelector("#tableName"),
   roundNumber: document.querySelector("#roundNumber"),
@@ -284,6 +290,49 @@ function renderPlayers() {
     chip.className = "chip";
     chip.textContent = player.name;
     els.playerList.append(chip);
+  });
+}
+
+function renderSchedule() {
+  els.scheduleRoundLabel.textContent = `${activeScheduleRound}回戦`;
+  els.scheduleRoundTabs.innerHTML = "";
+  for (let round = 1; round <= 8; round += 1) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "schedule-round-button";
+    button.textContent = `${round}回戦`;
+    button.classList.toggle("active", round === activeScheduleRound);
+    button.setAttribute("aria-pressed", String(round === activeScheduleRound));
+    button.addEventListener("click", () => {
+      activeScheduleRound = round;
+      renderSchedule();
+    });
+    els.scheduleRoundTabs.append(button);
+  }
+
+  els.scheduleList.innerHTML = "";
+  const roundSchedule = eventSchedule[activeScheduleRound - 1] || {};
+  "ABCDEFGHIJ".split("").forEach((tableName) => {
+    const row = document.createElement("div");
+    row.className = "schedule-row";
+    if (tableName === "E" || tableName === "J") row.classList.add("guest-table");
+
+    const label = document.createElement("strong");
+    label.className = "schedule-table-name";
+    label.textContent = `${tableName}卓`;
+    row.append(label);
+
+    const members = document.createElement("div");
+    members.className = "schedule-members";
+    (roundSchedule[tableName] || []).forEach((name) => {
+      const member = document.createElement("span");
+      member.className = "schedule-member";
+      member.textContent = name;
+      if (name === "雛呑ちの" || name === "猫又めいど") member.classList.add("guest-name");
+      members.append(member);
+    });
+    row.append(members);
+    els.scheduleList.append(row);
   });
 }
 
@@ -577,6 +626,7 @@ function renderAll({ keepForm = false } = {}) {
     renderMatchMetaOptions();
   }
   renderPlayers();
+  renderSchedule();
   if (!keepForm) {
     renderSeats();
   }
@@ -714,12 +764,17 @@ async function saveMatchFromForm() {
 
 function setView(view) {
   activeView = view;
+  const isInput = view === "input";
+  const isSchedule = view === "schedule";
   const isRanking = view === "ranking";
-  els.inputPage.classList.toggle("active", !isRanking);
+  els.inputPage.classList.toggle("active", isInput);
+  els.schedulePage.classList.toggle("active", isSchedule);
   els.rankingPage.classList.toggle("active", isRanking);
-  els.inputTab.classList.toggle("active", !isRanking);
+  els.inputTab.classList.toggle("active", isInput);
+  els.scheduleTab.classList.toggle("active", isSchedule);
   els.rankingTab.classList.toggle("active", isRanking);
-  els.inputTab.setAttribute("aria-selected", String(!isRanking));
+  els.inputTab.setAttribute("aria-selected", String(isInput));
+  els.scheduleTab.setAttribute("aria-selected", String(isSchedule));
   els.rankingTab.setAttribute("aria-selected", String(isRanking));
 }
 
@@ -740,6 +795,7 @@ els.matchForm.addEventListener("submit", async (event) => {
 });
 
 els.inputTab.addEventListener("click", () => setView("input"));
+els.scheduleTab.addEventListener("click", () => setView("schedule"));
 els.rankingTab.addEventListener("click", () => setView("ranking"));
 els.cancelEditButton.addEventListener("click", clearEditingMatch);
 els.closeDetailButton.addEventListener("click", () => els.playerDetailDialog.close());

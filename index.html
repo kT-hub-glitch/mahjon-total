@@ -8,7 +8,7 @@
       name="description"
       content="麻雀大会の選手、対局結果、順位点、合計ポイントをブラウザだけで集計できます。"
     />
-    <link rel="stylesheet" href="./style.css?v=20260824-raw-average" />
+    <link rel="stylesheet" href="./style.css?v=20260929-schedule-view" />
   </head>
   <body>
     <header class="app-header">
@@ -28,6 +28,7 @@
 
       <nav class="view-tabs" aria-label="ページ切り替え">
         <button id="inputTab" class="tab-button active" type="button" aria-controls="inputPage">スコア入力</button>
+        <button id="scheduleTab" class="tab-button" type="button" aria-controls="schedulePage">卓組</button>
         <button id="rankingTab" class="tab-button" type="button" aria-controls="rankingPage">ランキング</button>
       </nav>
 
@@ -81,6 +82,21 @@
         </section>
       </section>
 
+      <section id="schedulePage" class="page-view">
+        <section class="panel schedule-panel" aria-labelledby="scheduleHeading">
+          <div class="section-title">
+            <h2 id="scheduleHeading">卓組</h2>
+            <span id="scheduleRoundLabel" class="count-label">1回戦</span>
+          </div>
+          <div id="scheduleRoundTabs" class="schedule-round-tabs" aria-label="回戦切り替え"></div>
+          <div class="schedule-list-heading" aria-hidden="true">
+            <span>卓</span>
+            <span>参加者</span>
+          </div>
+          <div id="scheduleList" class="schedule-list"></div>
+        </section>
+      </section>
+
       <section id="rankingPage" class="page-view">
         <section class="panel standings-panel" aria-labelledby="standingsHeading">
           <div class="section-title">
@@ -128,6 +144,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="./event_schedule.js?v=20260929-sanpin"></script>
-    <script src="./app.js?v=20260929-sanpin" defer></script>
+    <script src="./app.js?v=20260929-schedule-view" defer></script>
   </body>
 </html>
