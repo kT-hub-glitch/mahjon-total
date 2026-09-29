@@ -66,6 +66,7 @@ const defaultState = {
 let state = structuredClone(defaultState);
 let activeView = "input";
 let activeScheduleRound = 1;
+let selectedSchedulePlayer = "";
 let editingMatchId = null;
 let fixedRosterReady = false;
 let playerNamesById = new Map(state.players.map((player) => [player.id, player.name]));
@@ -84,6 +85,8 @@ const els = {
   playerCount: document.querySelector("#playerCount"),
   scheduleRoundTabs: document.querySelector("#scheduleRoundTabs"),
   scheduleRoundLabel: document.querySelector("#scheduleRoundLabel"),
+  schedulePlayerSelect: document.querySelector("#schedulePlayerSelect"),
+  playerScheduleSummary: document.querySelector("#playerScheduleSummary"),
   scheduleList: document.querySelector("#scheduleList"),
   matchForm: document.querySelector("#matchForm"),
   tableName: document.querySelector("#tableName"),
@@ -294,6 +297,45 @@ function renderPlayers() {
 }
 
 function renderSchedule() {
+  const currentSelection = els.schedulePlayerSelect.value;
+  els.schedulePlayerSelect.innerHTML = '<option value="">選手を選択</option>';
+  FIXED_PLAYER_NAMES.forEach((name) => {
+    const option = document.createElement("option");
+    option.value = name;
+    option.textContent = name;
+    els.schedulePlayerSelect.append(option);
+  });
+  els.schedulePlayerSelect.value = currentSelection || selectedSchedulePlayer;
+  selectedSchedulePlayer = els.schedulePlayerSelect.value;
+
+  els.playerScheduleSummary.innerHTML = "";
+  els.playerScheduleSummary.hidden = !selectedSchedulePlayer;
+  if (selectedSchedulePlayer) {
+    const heading = document.createElement("strong");
+    heading.className = "player-schedule-name";
+    heading.textContent = selectedSchedulePlayer;
+    els.playerScheduleSummary.append(heading);
+
+    const rounds = document.createElement("div");
+    rounds.className = "player-schedule-rounds";
+    eventSchedule.forEach((roundSchedule, roundIndex) => {
+      const tableName = Object.entries(roundSchedule).find(([, names]) =>
+        names.includes(selectedSchedulePlayer),
+      )?.[0];
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "player-schedule-round";
+      button.classList.toggle("active", roundIndex + 1 === activeScheduleRound);
+      button.innerHTML = `<span>${roundIndex + 1}回戦</span><strong>${tableName ? `${tableName}卓` : "-"}</strong>`;
+      button.addEventListener("click", () => {
+        activeScheduleRound = roundIndex + 1;
+        renderSchedule();
+      });
+      rounds.append(button);
+    });
+    els.playerScheduleSummary.append(rounds);
+  }
+
   els.scheduleRoundLabel.textContent = `${activeScheduleRound}回戦`;
   els.scheduleRoundTabs.innerHTML = "";
   for (let round = 1; round <= 8; round += 1) {
@@ -329,6 +371,7 @@ function renderSchedule() {
       member.className = "schedule-member";
       member.textContent = name;
       if (name === "雛呑ちの" || name === "猫又めいど") member.classList.add("guest-name");
+      if (name === selectedSchedulePlayer) member.classList.add("selected-player");
       members.append(member);
     });
     row.append(members);
@@ -797,6 +840,10 @@ els.matchForm.addEventListener("submit", async (event) => {
 els.inputTab.addEventListener("click", () => setView("input"));
 els.scheduleTab.addEventListener("click", () => setView("schedule"));
 els.rankingTab.addEventListener("click", () => setView("ranking"));
+els.schedulePlayerSelect.addEventListener("change", () => {
+  selectedSchedulePlayer = els.schedulePlayerSelect.value;
+  renderSchedule();
+});
 els.cancelEditButton.addEventListener("click", clearEditingMatch);
 els.closeDetailButton.addEventListener("click", () => els.playerDetailDialog.close());
 els.tableName.addEventListener("change", handleMatchMetaChange);

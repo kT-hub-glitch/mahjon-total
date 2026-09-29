@@ -141,6 +141,78 @@ h2 {
   margin-bottom: 1rem;
 }
 
+.schedule-player-search {
+  display: grid;
+  grid-template-columns: auto minmax(12rem, 22rem);
+  align-items: center;
+  justify-content: start;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.schedule-player-search label {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.schedule-player-search select {
+  min-height: 2.75rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  padding: 0.45rem 2.2rem 0.45rem 0.7rem;
+}
+
+.player-schedule-summary {
+  margin-bottom: 1rem;
+  border: 1px solid rgba(18, 124, 99, 0.28);
+  border-radius: 8px;
+  background: #f1f8f5;
+  padding: 0.85rem;
+}
+
+.player-schedule-name {
+  display: block;
+  margin-bottom: 0.65rem;
+  color: var(--accent-dark);
+}
+
+.player-schedule-rounds {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(4.5rem, 1fr));
+  gap: 0.4rem;
+}
+
+.player-schedule-round {
+  display: grid;
+  gap: 0.15rem;
+  min-height: 3.35rem;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--muted);
+  padding: 0.4rem;
+}
+
+.player-schedule-round span {
+  font-size: 0.72rem;
+}
+
+.player-schedule-round strong {
+  color: var(--accent-dark);
+}
+
+.player-schedule-round.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.player-schedule-round.active strong {
+  color: #fff;
+}
+
 .schedule-round-button {
   min-height: 2.5rem;
   border: 1px solid var(--line);
@@ -205,6 +277,14 @@ h2 {
 .schedule-member.guest-name {
   color: #9b294d;
   font-weight: 900;
+}
+
+.schedule-member.selected-player {
+  border-radius: 5px;
+  background: #ffe29a;
+  color: #5f3a00;
+  padding: 0.3rem 0.4rem;
+  box-shadow: inset 0 0 0 1px #d59b20;
 }
 
 .rule-strip {
@@ -609,6 +689,19 @@ tbody tr:first-child td {
 
   .schedule-round-tabs {
     grid-template-columns: repeat(4, 1fr);
+  }
+
+  .schedule-player-search {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
+
+  .schedule-player-search select {
+    width: 100%;
+  }
+
+  .player-schedule-rounds {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .schedule-list-heading {
