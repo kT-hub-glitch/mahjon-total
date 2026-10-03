@@ -19,7 +19,7 @@ const FIXED_PLAYER_NAMES = [
   "ひょ",
   "検察側の証人",
   "ぐでかご@VPL",
-  "なぽ",
+  "サンピン",
   "ムック08",
   "草原",
   "のりごはん",
@@ -37,7 +37,7 @@ const FIXED_PLAYER_NAMES = [
   "あわ",
   "初心者の無銘",
   "とり",
-  "サンピン",
+  "ハットリン",
   "うしんた",
   "すりぴ",
   "ドラどらごん",
@@ -52,6 +52,8 @@ const FIXED_SETTINGS = {
 const PLAYER_NAME_MIGRATIONS = [
   { from: "ちぃーちぃー", to: "なちぽ" },
   { from: "星屑マル", to: "サンピン" },
+  { from: "サンピン", to: "ハットリン" },
+  { from: "なぽ", to: "サンピン" },
 ];
 
 const defaultState = {
