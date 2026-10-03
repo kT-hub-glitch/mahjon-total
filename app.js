@@ -37,7 +37,7 @@ const FIXED_PLAYER_NAMES = [
   "あわ",
   "初心者の無銘",
   "とり",
-  "ハットリン",
+  "まっちゃん",
   "うしんた",
   "すりぴ",
   "ドラどらごん",
@@ -52,8 +52,8 @@ const FIXED_SETTINGS = {
 const PLAYER_NAME_MIGRATIONS = [
   { from: "ちぃーちぃー", to: "なちぽ" },
   { from: "星屑マル", to: "サンピン" },
-  { from: "サンピン", to: "ハットリン" },
   { from: "なぽ", to: "サンピン" },
+  { from: "ハットリン", to: "まっちゃん" },
 ];
 
 const defaultState = {
