@@ -40,7 +40,7 @@ const FIXED_PLAYER_NAMES = [
   "まっちゃん",
   "うしんた",
   "すりぴ",
-  "ドラどらごん",
+  "ハットリン",
   "よっぴー",
 ];
 const FIXED_SETTINGS = {
@@ -54,6 +54,7 @@ const PLAYER_NAME_MIGRATIONS = [
   { from: "星屑マル", to: "サンピン" },
   { from: "なぽ", to: "サンピン" },
   { from: "ハットリン", to: "まっちゃん" },
+  { from: "ドラどらごん", to: "ハットリン" },
 ];
 
 const defaultState = {
