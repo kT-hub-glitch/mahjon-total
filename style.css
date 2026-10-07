@@ -843,6 +843,42 @@ tbody tr:first-child td {
   color: var(--accent-dark);
 }
 
+@media (max-width: 1200px) {
+  .admin-roster-heading {
+    display: none;
+  }
+
+  .admin-player-row {
+    grid-template-columns: minmax(12rem, 1.5fr) repeat(2, minmax(8rem, 1fr));
+    align-items: start;
+    overflow-x: visible;
+    padding-top: 0.8rem;
+    padding-bottom: 0.8rem;
+  }
+
+  .admin-player-name,
+  .admin-row-actions {
+    grid-column: 1 / -1;
+  }
+
+  .admin-select-field > span {
+    display: block;
+    margin-bottom: 0.3rem;
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 800;
+  }
+
+  .admin-select-field > .admin-avoid-fields {
+    display: grid;
+  }
+
+  .admin-row-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 @media (max-width: 920px) {
   .app-header,
   .app-shell {
@@ -853,15 +889,6 @@ tbody tr:first-child td {
   .app-shell,
   .page-view.active {
     grid-template-columns: 1fr;
-  }
-
-  .admin-roster-heading {
-    display: none;
-  }
-
-  .admin-player-row {
-    grid-template-columns: minmax(12rem, 1fr) repeat(5, minmax(7rem, auto)) 10rem;
-    overflow-x: auto;
   }
 
   .generator-controls {
