@@ -771,6 +771,14 @@ async function publishSchedule() {
     alert("条件を満たしていないため保存できません。画面の条件チェックを確認してください。");
     return;
   }
+  const { data: authData, error: authError } = await db.auth.getUser();
+  if (authError || authData.user?.email !== ADMIN_EMAIL) {
+    setScheduleStatus("再ログインが必要", true);
+    alert("管理者ログインの有効期限が切れています。もう一度ログインしてから保存してください。");
+    await db.auth.signOut();
+    await applySession(null);
+    return;
+  }
   const rows = [];
   draftSchedule.forEach((round, roundIndex) => {
     Object.entries(round).forEach(([tableName, players]) => {
@@ -789,7 +797,7 @@ async function publishSchedule() {
   if (error) {
     console.error(error);
     setScheduleStatus("保存エラー", true);
-    alert("卓組を保存できませんでした。Supabaseの設定SQLが最新か確認してください。");
+    alert(`卓組を保存できませんでした。\n${error.message}`);
     return;
   }
   setScheduleStatus("公開済み");
