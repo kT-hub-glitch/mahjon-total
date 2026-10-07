@@ -740,6 +740,11 @@ tbody tr:first-child td {
   display: none;
 }
 
+.admin-select-field > .admin-avoid-fields {
+  display: grid;
+  gap: 0.35rem;
+}
+
 .admin-roster-heading {
   color: var(--muted);
   padding: 0.4rem 0.5rem;
@@ -1083,6 +1088,10 @@ tbody tr:first-child td {
     color: var(--muted);
     font-size: 0.72rem;
     font-weight: 800;
+  }
+
+  .admin-select-field > .admin-avoid-fields {
+    display: grid;
   }
 
   .admin-row-actions {

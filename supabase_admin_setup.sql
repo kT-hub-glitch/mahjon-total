@@ -8,6 +8,8 @@ alter table public.participants
   add column if not exists fixed_table text,
   add column if not exists guest_table_preference text,
   add column if not exists avoid_player_id uuid references public.participants(id) on delete set null,
+  add column if not exists avoid_player_id_2 uuid references public.participants(id) on delete set null,
+  add column if not exists avoid_player_id_3 uuid references public.participants(id) on delete set null,
   add column if not exists sort_order integer not null default 0;
 
 do $$

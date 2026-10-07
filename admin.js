@@ -91,7 +91,18 @@ function playerOptions(selected = "", excludedId = "") {
 }
 
 function isAvoidedPair(first, second) {
-  return first?.avoid_player_id === second?.id || second?.avoid_player_id === first?.id;
+  const firstAvoids = [first?.avoid_player_id, first?.avoid_player_id_2, first?.avoid_player_id_3];
+  const secondAvoids = [second?.avoid_player_id, second?.avoid_player_id_2, second?.avoid_player_id_3];
+  return firstAvoids.includes(second?.id) || secondAvoids.includes(first?.id);
+}
+
+function updateAvoidOptions(selects) {
+  const selectedIds = selects.map((select) => select.value).filter(Boolean);
+  selects.forEach((select) => {
+    [...select.options].forEach((option) => {
+      option.disabled = Boolean(option.value) && option.value !== select.value && selectedIds.includes(option.value);
+    });
+  });
 }
 
 function escapeHtml(value) {
@@ -135,13 +146,18 @@ function renderRoster() {
     const guest = row.querySelector(".admin-player-guest");
     const fixedTable = row.querySelector(".admin-player-fixed-table");
     const guestPreference = row.querySelector(".admin-player-guest-preference");
-    const avoidPlayer = row.querySelector(".admin-player-avoid");
+    const avoidPlayers = [...row.querySelectorAll(".admin-player-avoid")];
     name.value = player.name;
     scorer.checked = Boolean(player.can_score);
     guest.checked = Boolean(player.is_guest);
     fixedTable.innerHTML = tableOptions(player.fixed_table || "");
     guestPreference.innerHTML = guestOptions(player.guest_table_preference || "");
-    avoidPlayer.innerHTML = playerOptions(player.avoid_player_id || "", player.id);
+    const avoidIds = [player.avoid_player_id, player.avoid_player_id_2, player.avoid_player_id_3];
+    avoidPlayers.forEach((select, index) => {
+      select.innerHTML = playerOptions(avoidIds[index] || "", player.id);
+      select.addEventListener("change", () => updateAvoidOptions(avoidPlayers));
+    });
+    updateAvoidOptions(avoidPlayers);
     guestPreference.disabled = guest.checked;
     row.classList.toggle("inactive", !player.active);
 
@@ -149,17 +165,24 @@ function renderRoster() {
       guestPreference.disabled = guest.checked;
       if (guest.checked) guestPreference.value = "";
     });
-    row.querySelector(".admin-save-player").addEventListener("click", () =>
+    row.querySelector(".admin-save-player").addEventListener("click", () => {
+      const selectedAvoidIds = avoidPlayers.map((select) => select.value).filter(Boolean);
+      if (new Set(selectedAvoidIds).size !== selectedAvoidIds.length) {
+        alert("同じNG選手が重複しています。");
+        return;
+      }
       saveParticipant(player.id, {
         name: name.value.trim(),
         can_score: scorer.checked,
         is_guest: guest.checked,
         fixed_table: fixedTable.value || null,
         guest_table_preference: guest.checked ? null : guestPreference.value || null,
-        avoid_player_id: avoidPlayer.value || null,
+        avoid_player_id: avoidPlayers[0].value || null,
+        avoid_player_id_2: avoidPlayers[1].value || null,
+        avoid_player_id_3: avoidPlayers[2].value || null,
         active: true,
-      }),
-    );
+      });
+    });
     row.querySelector(".admin-delete-player").addEventListener("click", () => removeParticipant(player));
     els.adminRoster.append(row);
   });
@@ -178,7 +201,7 @@ async function saveParticipant(id, values) {
   const { error } = await db.from("participants").update(values).eq("id", id);
   if (error) {
     console.error(error);
-    alert("選手情報を保存できませんでした。");
+    alert(`選手情報を保存できませんでした。\n${error.message}`);
     return;
   }
   await loadParticipants();
@@ -603,6 +626,8 @@ els.addPlayerForm.addEventListener("submit", async (event) => {
     active: true,
     sort_order: sortOrder,
     avoid_player_id: null,
+    avoid_player_id_2: null,
+    avoid_player_id_3: null,
   });
   if (error) {
     console.error(error);
