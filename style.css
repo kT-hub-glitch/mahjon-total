@@ -727,9 +727,17 @@ tbody tr:first-child td {
 .admin-roster-heading,
 .admin-player-row {
   display: grid;
-  grid-template-columns: minmax(9rem, 1.4fr) 6.5rem 6.5rem 7.5rem 9rem 10rem;
+  grid-template-columns: minmax(9rem, 1.4fr) 6.5rem 6.5rem 7.5rem 9rem 9rem 10rem;
   align-items: center;
   gap: 0.55rem;
+}
+
+.admin-select-field {
+  display: block;
+}
+
+.admin-select-field > span {
+  display: none;
 }
 
 .admin-roster-heading {
@@ -847,7 +855,7 @@ tbody tr:first-child td {
   }
 
   .admin-player-row {
-    grid-template-columns: minmax(12rem, 1fr) repeat(4, minmax(7rem, auto)) 10rem;
+    grid-template-columns: minmax(12rem, 1fr) repeat(5, minmax(7rem, auto)) 10rem;
     overflow-x: auto;
   }
 
@@ -1064,8 +1072,17 @@ tbody tr:first-child td {
   }
 
   .admin-player-fixed-table,
-  .admin-player-guest-preference {
+  .admin-player-guest-preference,
+  .admin-player-avoid {
     min-width: 0;
+  }
+
+  .admin-select-field > span {
+    display: block;
+    margin-bottom: 0.3rem;
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 800;
   }
 
   .admin-row-actions {

@@ -77,6 +77,23 @@ function guestOptions(selected = "") {
     .join("");
 }
 
+function playerOptions(selected = "", excludedId = "") {
+  return ['<option value="">指定なし</option>']
+    .concat(
+      participants
+        .filter((player) => player.active && player.id !== excludedId)
+        .map(
+          (player) =>
+            `<option value="${player.id}"${player.id === selected ? " selected" : ""}>${escapeHtml(player.name)}</option>`,
+        ),
+    )
+    .join("");
+}
+
+function isAvoidedPair(first, second) {
+  return first?.avoid_player_id === second?.id || second?.avoid_player_id === first?.id;
+}
+
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (char) => {
     const entities = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
@@ -118,11 +135,13 @@ function renderRoster() {
     const guest = row.querySelector(".admin-player-guest");
     const fixedTable = row.querySelector(".admin-player-fixed-table");
     const guestPreference = row.querySelector(".admin-player-guest-preference");
+    const avoidPlayer = row.querySelector(".admin-player-avoid");
     name.value = player.name;
     scorer.checked = Boolean(player.can_score);
     guest.checked = Boolean(player.is_guest);
     fixedTable.innerHTML = tableOptions(player.fixed_table || "");
     guestPreference.innerHTML = guestOptions(player.guest_table_preference || "");
+    avoidPlayer.innerHTML = playerOptions(player.avoid_player_id || "", player.id);
     guestPreference.disabled = guest.checked;
     row.classList.toggle("inactive", !player.active);
 
@@ -137,6 +156,7 @@ function renderRoster() {
         is_guest: guest.checked,
         fixed_table: fixedTable.value || null,
         guest_table_preference: guest.checked ? null : guestPreference.value || null,
+        avoid_player_id: avoidPlayer.value || null,
         active: true,
       }),
     );
@@ -197,6 +217,7 @@ function pairKey(firstId, secondId) {
 
 function chooseCandidate(pool, table, pairCounts, guestCoverage, guestTable) {
   const eligible = pool.filter((player) => {
+    if (table.some((seated) => isAvoidedPair(player, seated))) return false;
     if (!guestTable || !player.guest_table_preference) return true;
     const guestId = preferredGuestId(player.guest_table_preference);
     return guestId
@@ -233,6 +254,7 @@ function buildScheduleCandidate(activePlayers, rounds, minScorers, maxScorers) {
     const tables = Object.fromEntries(tableNames.map((name) => [name, []]));
     for (const player of fixedPlayers) {
       if (!tables[player.fixed_table] || tables[player.fixed_table].length >= 4) return null;
+      if (tables[player.fixed_table].some((seated) => isAvoidedPair(player, seated))) return null;
       tables[player.fixed_table].push(player);
     }
 
@@ -451,6 +473,13 @@ function validateDraftSchedule() {
           issues.push(`${player.name}が${guestName}以外のゲストと同卓しています。`);
         }
       });
+      for (let first = 0; first < players.length; first += 1) {
+        for (let second = first + 1; second < players.length; second += 1) {
+          if (isAvoidedPair(players[first], players[second])) {
+            issues.push(`${players[first].name}と${players[second].name}はNG選手同士です。`);
+          }
+        }
+      }
     });
   });
   if (els.requireGuestMeeting.checked) {
@@ -573,6 +602,7 @@ els.addPlayerForm.addEventListener("submit", async (event) => {
     is_guest: els.newPlayerIsGuest.checked,
     active: true,
     sort_order: sortOrder,
+    avoid_player_id: null,
   });
   if (error) {
     console.error(error);
