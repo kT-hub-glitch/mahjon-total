@@ -94,8 +94,12 @@ create table if not exists public.tournament_settings (
   team_enabled boolean not null default false,
   team_a_name text not null default 'チーム1',
   team_b_name text not null default 'チーム2',
+  ranking_public boolean not null default true,
   updated_at timestamptz not null default now()
 );
+
+alter table public.tournament_settings
+  add column if not exists ranking_public boolean not null default true;
 
 insert into public.tournament_settings (id)
 values (1)

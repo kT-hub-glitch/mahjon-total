@@ -10,6 +10,7 @@ let teamSettings = {
   enabled: false,
   teamAName: "チーム1",
   teamBName: "チーム2",
+  rankingPublic: true,
 };
 
 const els = {
@@ -24,6 +25,8 @@ const els = {
   teamAName: document.querySelector("#teamAName"),
   teamBName: document.querySelector("#teamBName"),
   saveTeamSettingsButton: document.querySelector("#saveTeamSettingsButton"),
+  rankingPublic: document.querySelector("#rankingPublic"),
+  saveVisibilitySettingsButton: document.querySelector("#saveVisibilitySettingsButton"),
   addPlayerForm: document.querySelector("#addPlayerForm"),
   newPlayerName: document.querySelector("#newPlayerName"),
   newPlayerCanScore: document.querySelector("#newPlayerCanScore"),
@@ -158,6 +161,7 @@ async function loadParticipants() {
       enabled: Boolean(settingsResult.data.team_enabled),
       teamAName: settingsResult.data.team_a_name || "チーム1",
       teamBName: settingsResult.data.team_b_name || "チーム2",
+      rankingPublic: settingsResult.data.ranking_public !== false,
     };
   }
   renderTeamSettings();
@@ -168,6 +172,7 @@ function renderTeamSettings() {
   els.teamEnabled.checked = teamSettings.enabled;
   els.teamAName.value = teamSettings.teamAName;
   els.teamBName.value = teamSettings.teamBName;
+  els.rankingPublic.checked = teamSettings.rankingPublic;
   els.teamSettingsFields.classList.toggle("disabled", !teamSettings.enabled);
   els.teamAName.disabled = !teamSettings.enabled;
   els.teamBName.disabled = !teamSettings.enabled;
@@ -182,21 +187,23 @@ async function saveTeamSettings() {
     team_enabled: els.teamEnabled.checked,
     team_a_name: els.teamAName.value.trim() || "チーム1",
     team_b_name: els.teamBName.value.trim() || "チーム2",
+    ranking_public: els.rankingPublic.checked,
   };
   const { error } = await db.from("tournament_settings").upsert(values, { onConflict: "id" });
   if (error) {
     console.error(error);
-    alert(`チーム設定を保存できませんでした。\n${error.message}`);
+    alert(`設定を保存できませんでした。Supabaseの設定SQLが最新か確認してください。\n${error.message}`);
     return;
   }
   teamSettings = {
     enabled: values.team_enabled,
     teamAName: values.team_a_name,
     teamBName: values.team_b_name,
+    rankingPublic: values.ranking_public,
   };
   renderTeamSettings();
   renderRoster();
-  alert("チーム設定を保存しました。");
+  alert("設定を保存しました。");
 }
 
 function renderRoster() {
@@ -230,6 +237,13 @@ function renderRoster() {
     updateAvoidOptions(avoidPlayers);
     guestPreference.disabled = guest.checked;
     row.classList.toggle("inactive", !player.active);
+    row.classList.toggle("team-a-row", teamSettings.enabled && player.team_code === "A");
+    row.classList.toggle("team-b-row", teamSettings.enabled && player.team_code === "B");
+
+    team.addEventListener("change", () => {
+      row.classList.toggle("team-a-row", teamSettings.enabled && team.value === "A");
+      row.classList.toggle("team-b-row", teamSettings.enabled && team.value === "B");
+    });
 
     guest.addEventListener("change", () => {
       guestPreference.disabled = guest.checked;
@@ -804,6 +818,7 @@ els.teamEnabled.addEventListener("change", () => {
   renderRoster();
 });
 els.saveTeamSettingsButton.addEventListener("click", saveTeamSettings);
+els.saveVisibilitySettingsButton.addEventListener("click", saveTeamSettings);
 els.saveAllPlayersButton.addEventListener("click", saveAllParticipants);
 
 els.addPlayerForm.addEventListener("submit", async (event) => {

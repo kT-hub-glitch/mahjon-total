@@ -1,5 +1,6 @@
 const SUPABASE_URL = "https://irxsgvqazsqxsmpylhoy.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_nsg85bJVjJjWcZNmgF7y3Q_x7_3YZYU";
+const ADMIN_EMAIL = "admin@mahjong.local";
 const REQUIRED_TOTAL_SCORE = 100000;
 const FIXED_PLAYER_NAMES = [
   "雛呑ちの",
@@ -53,6 +54,7 @@ const DEFAULT_TEAM_SETTINGS = {
   enabled: false,
   teamAName: "チーム1",
   teamBName: "チーム2",
+  rankingPublic: true,
 };
 const PLAYER_NAME_MIGRATIONS = [
   { from: "ちぃーちぃー", to: "なちぽ" },
@@ -77,11 +79,14 @@ let activeView = "input";
 let activeScheduleRound = 1;
 let selectedSchedulePlayer = "";
 let editingMatchId = null;
+let isAdminSession = false;
+let remoteSettingsLoaded = false;
 let playerNamesById = new Map(state.players.map((player) => [player.id, player.name]));
 let eventSchedule = window.EVENT_SCHEDULE?.rounds || [];
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 const els = {
+  viewTabs: document.querySelector(".view-tabs"),
   inputTab: document.querySelector("#inputTab"),
   scheduleTab: document.querySelector("#scheduleTab"),
   rankingTab: document.querySelector("#rankingTab"),
@@ -129,6 +134,7 @@ async function loadRemoteState({ keepForm = false } = {}) {
     { data: matches, error: matchesError },
     { data: assignments, error: scheduleError },
     { data: teamSettings },
+    { data: authData },
   ] = await Promise.all([
     db.from("participants").select("*").order("created_at", { ascending: true }),
     db
@@ -142,6 +148,7 @@ async function loadRemoteState({ keepForm = false } = {}) {
       .order("table_name", { ascending: true })
       .order("seat_number", { ascending: true }),
     db.from("tournament_settings").select("*").eq("id", 1).maybeSingle(),
+    db.auth.getSession(),
   ]);
 
   if (playersError || matchesError) {
@@ -151,6 +158,8 @@ async function loadRemoteState({ keepForm = false } = {}) {
   }
 
   playerNamesById = new Map((participants || []).map((player) => [player.id, player.name]));
+  isAdminSession = authData?.session?.user?.email === ADMIN_EMAIL;
+  remoteSettingsLoaded = true;
   if (!scheduleError && assignments?.length) {
     eventSchedule = assignmentsToSchedule(assignments);
   }
@@ -162,6 +171,7 @@ async function loadRemoteState({ keepForm = false } = {}) {
           enabled: Boolean(teamSettings.team_enabled),
           teamAName: teamSettings.team_a_name || "チーム1",
           teamBName: teamSettings.team_b_name || "チーム2",
+          rankingPublic: teamSettings.ranking_public !== false,
         }
       : structuredClone(DEFAULT_TEAM_SETTINGS),
     players: (participants || [])
@@ -217,6 +227,18 @@ function scheduleTableNames() {
 
 function playerNameById(id) {
   return playerNamesById.get(id) || "不明";
+}
+
+function teamCodeById(id) {
+  return state.teamSettings?.enabled ? state.players.find((player) => player.id === id)?.teamCode || "" : "";
+}
+
+function teamCodeByName(name) {
+  return state.teamSettings?.enabled ? state.players.find((player) => player.name === name)?.teamCode || "" : "";
+}
+
+function teamClass(code) {
+  return code === "A" ? "team-a" : code === "B" ? "team-b" : "";
 }
 
 function formatPoint(value) {
@@ -306,6 +328,8 @@ function renderPlayers() {
   state.players.forEach((player) => {
     const chip = document.createElement("span");
     chip.className = "chip";
+    const code = teamCodeById(player.id);
+    if (code) chip.classList.add(teamClass(code));
     chip.textContent = player.name;
     els.playerList.append(chip);
   });
@@ -386,6 +410,8 @@ function renderSchedule() {
       const member = document.createElement("span");
       member.className = "schedule-member";
       member.textContent = name;
+      const code = teamCodeByName(name);
+      if (code) member.classList.add(teamClass(code));
       if (name === "雛呑ちの" || name === "猫又めいど") member.classList.add("guest-name");
       if (name === selectedSchedulePlayer) member.classList.add("selected-player");
       members.append(member);
@@ -564,6 +590,7 @@ function renderStandings() {
     const averageRank = row.games ? row.rankTotal / row.games : 0;
     const rawAverage = row.games ? row.rawScore / row.games : 0;
     tr.className = "standing-row";
+    if (state.teamSettings.enabled && row.teamCode) tr.classList.add(teamClass(row.teamCode));
     tr.tabIndex = 0;
     tr.setAttribute("role", "button");
     tr.setAttribute("aria-label", `${row.name}の個人成績を表示`);
@@ -615,7 +642,7 @@ function renderTeamStandings(rows) {
   teams.sort((first, second) => second.total - first.total);
   teams.forEach((team, index) => {
     const item = document.createElement("article");
-    item.className = "team-standing";
+    item.className = `team-standing ${teamClass(team.code)}`;
     item.innerHTML = `
       <span class="team-standing-rank">${index + 1}</span>
       <div>
@@ -668,7 +695,7 @@ function renderHistory() {
           ${ranked
             .map(
               (seat) =>
-                `<span class="score-badge">${seat.rankLabel} ${escapeHtml(playerNameById(seat.playerId))} ${Number(
+                `<span class="score-badge ${teamClass(teamCodeById(seat.playerId))}">${seat.rankLabel} ${escapeHtml(playerNameById(seat.playerId))} ${Number(
                   seat.score,
                 ).toLocaleString("ja-JP")} / ${formatPoint(seat.point)}</span>`,
             )
@@ -732,9 +759,18 @@ function renderAll({ keepForm = false } = {}) {
     renderSeats();
   }
   renderStandings();
+  renderRankingVisibility();
   renderHistory();
   renderEditState();
   setView(activeView);
+}
+
+function renderRankingVisibility() {
+  const canViewRanking =
+    remoteSettingsLoaded && (state.teamSettings?.rankingPublic !== false || isAdminSession);
+  els.rankingTab.hidden = !canViewRanking;
+  els.viewTabs.classList.toggle("ranking-hidden", !canViewRanking);
+  if (!canViewRanking && activeView === "ranking") activeView = "input";
 }
 
 async function removeMatch(matchId) {
@@ -864,6 +900,9 @@ async function saveMatchFromForm() {
 }
 
 function setView(view) {
+  if (view === "ranking" && state.teamSettings?.rankingPublic === false && !isAdminSession) {
+    view = "input";
+  }
   activeView = view;
   const isInput = view === "input";
   const isSchedule = view === "schedule";

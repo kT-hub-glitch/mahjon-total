@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>大会管理 | 麻雀大会集計ツール</title>
     <meta name="robots" content="noindex,nofollow" />
-    <link rel="stylesheet" href="./style.css?v=20261007-teams" />
+    <link rel="stylesheet" href="./style.css?v=20261007-team-colors-ranking" />
   </head>
   <body>
     <header class="app-header admin-header">
@@ -36,6 +36,22 @@
           <span>管理者としてログイン中</span>
           <button id="logoutButton" class="ghost-button" type="button">ログアウト</button>
         </div>
+
+        <section class="panel admin-panel" aria-labelledby="visibilitySettingsHeading">
+          <div class="section-title">
+            <div>
+              <h2 id="visibilitySettingsHeading">公開設定</h2>
+              <p class="section-note">オフの場合、ランキングは管理者ログイン中のみ表示されます。</p>
+            </div>
+            <label class="team-toggle">
+              <input id="rankingPublic" type="checkbox" checked />
+              ランキングを公開
+            </label>
+          </div>
+          <div class="settings-save-row">
+            <button id="saveVisibilitySettingsButton" class="primary-button" type="button">公開設定を保存</button>
+          </div>
+        </section>
 
         <section class="panel admin-panel" aria-labelledby="teamSettingsHeading">
           <div class="section-title">
@@ -176,6 +192,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="./event_schedule.js?v=20261004-hattorin-return"></script>
-    <script src="./admin.js?v=20261007-both-teams" defer></script>
+    <script src="./admin.js?v=20261007-team-colors-ranking" defer></script>
   </body>
 </html>
