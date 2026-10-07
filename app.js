@@ -71,9 +71,8 @@ let activeView = "input";
 let activeScheduleRound = 1;
 let selectedSchedulePlayer = "";
 let editingMatchId = null;
-let fixedRosterReady = false;
 let playerNamesById = new Map(state.players.map((player) => [player.id, player.name]));
-const eventSchedule = window.EVENT_SCHEDULE?.rounds || [];
+let eventSchedule = window.EVENT_SCHEDULE?.rounds || [];
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 const els = {
@@ -117,19 +116,22 @@ function setStatus(text, isError = false) {
 
 async function loadRemoteState({ keepForm = false } = {}) {
   setStatus("同期中");
-  const rosterError = await ensureFixedPlayers();
-  if (rosterError) {
-    console.error(rosterError);
-    setStatus("名簿同期エラー", true);
-    return;
-  }
-
-  const [{ data: participants, error: playersError }, { data: matches, error: matchesError }] = await Promise.all([
-    db.from("participants").select("id,name,created_at").order("created_at", { ascending: true }),
+  const [
+    { data: participants, error: playersError },
+    { data: matches, error: matchesError },
+    { data: assignments, error: scheduleError },
+  ] = await Promise.all([
+    db.from("participants").select("*").order("created_at", { ascending: true }),
     db
       .from("matches")
       .select("id,created_at,table_name,round_number,scores(participant_id,score)")
       .order("created_at", { ascending: true }),
+    db
+      .from("schedule_assignments")
+      .select("round_number,table_name,seat_number,participant_id")
+      .order("round_number", { ascending: true })
+      .order("table_name", { ascending: true })
+      .order("seat_number", { ascending: true }),
   ]);
 
   if (playersError || matchesError) {
@@ -139,19 +141,25 @@ async function loadRemoteState({ keepForm = false } = {}) {
   }
 
   playerNamesById = new Map((participants || []).map((player) => [player.id, player.name]));
+  if (!scheduleError && assignments?.length) {
+    eventSchedule = assignmentsToSchedule(assignments);
+  }
+  const rosterHasActiveFlag = (participants || []).some((player) => typeof player.active === "boolean");
   state = {
     settings: structuredClone(FIXED_SETTINGS),
     players: (participants || [])
-      .filter((player) => FIXED_PLAYER_NAMES.includes(player.name))
+      .filter((player) =>
+        rosterHasActiveFlag ? player.active !== false : FIXED_PLAYER_NAMES.includes(player.name),
+      )
       .map((player) => ({
         id: player.id,
         name: player.name,
+        sortOrder: Number(player.sort_order ?? FIXED_PLAYER_NAMES.indexOf(player.name)),
       }))
       .sort((a, b) => {
-        const aIndex = FIXED_PLAYER_NAMES.indexOf(a.name);
-        const bIndex = FIXED_PLAYER_NAMES.indexOf(b.name);
-        return (aIndex === -1 ? Number.MAX_SAFE_INTEGER : aIndex) -
-          (bIndex === -1 ? Number.MAX_SAFE_INTEGER : bIndex);
+        const aIndex = a.sortOrder < 0 ? Number.MAX_SAFE_INTEGER : a.sortOrder;
+        const bIndex = b.sortOrder < 0 ? Number.MAX_SAFE_INTEGER : b.sortOrder;
+        return aIndex - bIndex || a.name.localeCompare(b.name, "ja");
       }),
     matches: sortMatches(
       (matches || []).map((match) => ({
@@ -172,36 +180,21 @@ async function loadRemoteState({ keepForm = false } = {}) {
   setStatus("");
 }
 
-async function ensureFixedPlayers() {
-  if (fixedRosterReady) return null;
+function assignmentsToSchedule(assignments) {
+  const rounds = [];
+  assignments.forEach((assignment) => {
+    const roundIndex = Number(assignment.round_number) - 1;
+    if (!rounds[roundIndex]) rounds[roundIndex] = {};
+    if (!rounds[roundIndex][assignment.table_name]) rounds[roundIndex][assignment.table_name] = [];
+    rounds[roundIndex][assignment.table_name][Number(assignment.seat_number) - 1] =
+      playerNamesById.get(assignment.participant_id) || "不明";
+  });
+  return rounds;
+}
 
-  const { data: participants, error: selectError } = await db.from("participants").select("id,name");
-  if (selectError) return selectError;
-
-  for (const migration of PLAYER_NAME_MIGRATIONS) {
-    const previousPlayer = (participants || []).find((player) => player.name === migration.from);
-    const currentPlayer = (participants || []).find((player) => player.name === migration.to);
-    if (!previousPlayer || currentPlayer) continue;
-
-    const { error: renameError } = await db
-      .from("participants")
-      .update({ name: migration.to })
-      .eq("id", previousPlayer.id);
-    if (renameError) return renameError;
-    previousPlayer.name = migration.to;
-  }
-
-  const existingNames = new Set((participants || []).map((player) => player.name));
-  const missingNames = FIXED_PLAYER_NAMES.filter((name) => !existingNames.has(name));
-  if (missingNames.length > 0) {
-    const { error: insertError } = await db
-      .from("participants")
-      .insert(missingNames.map((name) => ({ name })));
-    if (insertError) return insertError;
-  }
-
-  fixedRosterReady = true;
-  return null;
+function scheduleTableNames() {
+  const names = new Set(eventSchedule.flatMap((round) => Object.keys(round || {})));
+  return names.size ? [...names].sort((a, b) => a.localeCompare(b, "en")) : "ABCDEFGHIJ".split("");
 }
 
 function playerNameById(id) {
@@ -302,7 +295,7 @@ function renderPlayers() {
 function renderSchedule() {
   const currentSelection = els.schedulePlayerSelect.value;
   els.schedulePlayerSelect.innerHTML = '<option value="">選手を選択</option>';
-  FIXED_PLAYER_NAMES.forEach((name) => {
+  state.players.forEach(({ name }) => {
     const option = document.createElement("option");
     option.value = name;
     option.textContent = name;
@@ -341,7 +334,8 @@ function renderSchedule() {
 
   els.scheduleRoundLabel.textContent = `${activeScheduleRound}回戦`;
   els.scheduleRoundTabs.innerHTML = "";
-  for (let round = 1; round <= 8; round += 1) {
+  const roundCount = Math.max(eventSchedule.length, 1);
+  for (let round = 1; round <= roundCount; round += 1) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "schedule-round-button";
@@ -357,7 +351,7 @@ function renderSchedule() {
 
   els.scheduleList.innerHTML = "";
   const roundSchedule = eventSchedule[activeScheduleRound - 1] || {};
-  "ABCDEFGHIJ".split("").forEach((tableName) => {
+  scheduleTableNames().forEach((tableName) => {
     const row = document.createElement("div");
     row.className = "schedule-row";
     if (tableName === "E" || tableName === "J") row.classList.add("guest-table");
@@ -449,7 +443,7 @@ function updateSeatOptions() {
 
 function renderMatchMetaOptions() {
   els.tableName.innerHTML = "";
-  "ABCDEFGHIJ".split("").forEach((table) => {
+  scheduleTableNames().forEach((table) => {
     const option = document.createElement("option");
     option.value = table;
     option.textContent = `${table}卓`;
@@ -457,7 +451,8 @@ function renderMatchMetaOptions() {
   });
 
   els.roundNumber.innerHTML = "";
-  for (let round = 1; round <= 8; round += 1) {
+  const roundCount = Math.max(eventSchedule.length, 8);
+  for (let round = 1; round <= roundCount; round += 1) {
     const option = document.createElement("option");
     option.value = String(round);
     option.textContent = `${round}回戦`;
@@ -499,8 +494,9 @@ function handleMatchMetaChange() {
 }
 
 function findFirstOpenCombo(usedCombos) {
-  const tables = "ABCDEFGHIJ".split("");
-  for (let round = 1; round <= 8; round += 1) {
+  const tables = scheduleTableNames();
+  const roundCount = Math.max(eventSchedule.length, 8);
+  for (let round = 1; round <= roundCount; round += 1) {
     for (const tableName of tables) {
       if (!usedCombos.has(`${tableName}-${round}`)) {
         return { tableName, roundNumber: round };

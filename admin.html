@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>大会管理 | 麻雀大会集計ツール</title>
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="stylesheet" href="./style.css?v=20261007-admin" />
+  </head>
+  <body>
+    <header class="app-header admin-header">
+      <div>
+        <p class="admin-kicker">大会管理</p>
+        <h1>選手・卓組管理</h1>
+      </div>
+      <a class="admin-link" href="./index.html">集計画面へ戻る</a>
+    </header>
+
+    <main class="admin-shell">
+      <section id="loginPanel" class="panel login-panel" aria-labelledby="loginHeading">
+        <div class="section-title">
+          <h2 id="loginHeading">管理者ログイン</h2>
+          <span id="loginStatus" class="status-pill" aria-live="polite"></span>
+        </div>
+        <form id="loginForm" class="login-form">
+          <label>
+            パスワード
+            <input id="adminPassword" type="password" autocomplete="current-password" required />
+          </label>
+          <button class="primary-button" type="submit">ログイン</button>
+        </form>
+      </section>
+
+      <div id="adminContent" class="admin-content" hidden>
+        <div class="admin-session-bar">
+          <span>管理者としてログイン中</span>
+          <button id="logoutButton" class="ghost-button" type="button">ログアウト</button>
+        </div>
+
+        <section class="panel admin-panel" aria-labelledby="rosterHeading">
+          <div class="section-title">
+            <div>
+              <h2 id="rosterHeading">参加選手</h2>
+              <p class="section-note">変更は各行の保存ボタンで反映されます。</p>
+            </div>
+            <span id="adminPlayerCount" class="count-label">0人</span>
+          </div>
+
+          <form id="addPlayerForm" class="admin-add-form">
+            <label>
+              選手名
+              <input id="newPlayerName" type="text" maxlength="40" required />
+            </label>
+            <label class="check-control">
+              <input id="newPlayerCanScore" type="checkbox" />
+              点数計算可
+            </label>
+            <label class="check-control">
+              <input id="newPlayerIsGuest" type="checkbox" />
+              ゲスト
+            </label>
+            <button class="primary-button" type="submit">選手を追加</button>
+          </form>
+
+          <div class="admin-roster-heading" aria-hidden="true">
+            <span>選手名</span>
+            <span>点数計算</span>
+            <span>ゲスト</span>
+            <span>固定卓</span>
+            <span>ゲスト同卓指定</span>
+            <span></span>
+          </div>
+          <div id="adminRoster" class="admin-roster"></div>
+        </section>
+
+        <section class="panel admin-panel" aria-labelledby="generatorHeading">
+          <div class="section-title">
+            <div>
+              <h2 id="generatorHeading">卓組作成</h2>
+              <p class="section-note">生成後、選手欄を変更すると同じ回戦内で入れ替わります。</p>
+            </div>
+            <span id="scheduleStatus" class="status-pill" aria-live="polite"></span>
+          </div>
+
+          <div class="generator-controls">
+            <label>
+              回戦数
+              <input id="generatorRounds" type="number" min="1" max="20" value="8" />
+            </label>
+            <label>
+              点数計算できる人 最少
+              <input id="generatorMinScorers" type="number" min="0" max="4" value="1" />
+            </label>
+            <label>
+              点数計算できる人 上限
+              <input id="generatorMaxScorers" type="number" min="0" max="4" value="2" />
+            </label>
+            <label class="check-control generator-check">
+              <input id="requireGuestMeeting" type="checkbox" checked />
+              全選手を1回以上ゲスト卓へ
+            </label>
+          </div>
+
+          <div class="generator-actions">
+            <button id="loadCurrentScheduleButton" class="ghost-button" type="button">現在の卓組を読み込む</button>
+            <button id="generateScheduleButton" class="primary-button" type="button">卓組を自動作成</button>
+            <button id="publishScheduleButton" class="primary-button publish-button" type="button">卓組を公開保存</button>
+          </div>
+
+          <div id="scheduleValidation" class="schedule-validation" aria-live="polite"></div>
+          <div id="adminSchedulePreview" class="admin-schedule-preview"></div>
+        </section>
+      </div>
+    </main>
+
+    <template id="adminPlayerTemplate">
+      <div class="admin-player-row">
+        <input class="admin-player-name" type="text" maxlength="40" aria-label="選手名" />
+        <label class="compact-check"><input class="admin-player-scorer" type="checkbox" />可</label>
+        <label class="compact-check"><input class="admin-player-guest" type="checkbox" />ゲスト</label>
+        <select class="admin-player-fixed-table" aria-label="固定卓"></select>
+        <select class="admin-player-guest-preference" aria-label="ゲスト同卓指定"></select>
+        <div class="admin-row-actions">
+          <button class="ghost-button admin-save-player" type="button">保存</button>
+          <button class="danger-button admin-delete-player" type="button">削除</button>
+        </div>
+      </div>
+    </template>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./event_schedule.js?v=20261004-hattorin-return"></script>
+    <script src="./admin.js?v=20261007-admin" defer></script>
+  </body>
+</html>

@@ -54,6 +54,19 @@ button {
   padding: 2rem clamp(1rem, 4vw, 3rem) 1.25rem;
 }
 
+.admin-link {
+  display: inline-grid;
+  min-height: 2.5rem;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--accent-dark);
+  padding: 0.5rem 0.85rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
 h1,
 h2 {
   margin: 0;
@@ -633,6 +646,190 @@ tbody tr:first-child td {
   color: var(--muted);
 }
 
+.admin-header {
+  align-items: center;
+}
+
+.admin-kicker {
+  margin: 0 0 0.25rem;
+  color: var(--accent-dark);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.admin-shell {
+  width: min(92rem, calc(100% - 2rem));
+  margin: 0 auto 3rem;
+}
+
+.login-panel {
+  width: min(28rem, 100%);
+  margin: 8vh auto 0;
+}
+
+.login-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.admin-content {
+  display: grid;
+  gap: 1rem;
+}
+
+.admin-content[hidden] {
+  display: none;
+}
+
+.admin-session-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.section-note {
+  margin: 0.3rem 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.admin-add-form {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) auto auto auto;
+  align-items: end;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 1rem;
+}
+
+.check-control,
+.compact-check {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.75rem;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.check-control input,
+.compact-check input {
+  width: 1.15rem;
+  min-height: 1.15rem;
+  accent-color: var(--accent);
+}
+
+.admin-roster-heading,
+.admin-player-row {
+  display: grid;
+  grid-template-columns: minmax(9rem, 1.4fr) 6.5rem 6.5rem 7.5rem 9rem 10rem;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.admin-roster-heading {
+  color: var(--muted);
+  padding: 0.4rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.admin-player-row {
+  border-top: 1px solid var(--line);
+  padding: 0.55rem 0.5rem;
+}
+
+.admin-player-row.inactive {
+  opacity: 0.55;
+}
+
+.admin-row-actions,
+.generator-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.admin-row-actions button {
+  min-height: 2.35rem;
+  padding: 0.4rem 0.65rem;
+}
+
+.generator-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(10rem, 1fr)) minmax(14rem, auto);
+  align-items: end;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+
+.generator-check {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.55rem 0.75rem;
+}
+
+.generator-actions {
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.publish-button {
+  margin-left: auto;
+}
+
+.schedule-validation {
+  margin-bottom: 1rem;
+  border: 1px solid rgba(18, 124, 99, 0.28);
+  border-radius: 8px;
+  background: #f1f8f5;
+  color: var(--accent-dark);
+  padding: 0.7rem 0.8rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.schedule-validation:empty {
+  display: none;
+}
+
+.schedule-validation.error {
+  border-color: rgba(180, 35, 24, 0.3);
+  background: #fff1ef;
+  color: var(--danger);
+}
+
+.admin-schedule-preview {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.admin-round h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.admin-schedule-row {
+  display: grid;
+  grid-template-columns: 4rem repeat(4, minmax(8rem, 1fr));
+  align-items: center;
+  gap: 0.45rem;
+  border-top: 1px solid var(--line);
+  padding: 0.45rem;
+}
+
+.admin-schedule-row:nth-child(odd) {
+  background: #f9faf8;
+}
+
+.admin-schedule-row strong {
+  color: var(--accent-dark);
+}
+
 @media (max-width: 920px) {
   .app-header,
   .app-shell {
@@ -643,6 +840,19 @@ tbody tr:first-child td {
   .app-shell,
   .page-view.active {
     grid-template-columns: 1fr;
+  }
+
+  .admin-roster-heading {
+    display: none;
+  }
+
+  .admin-player-row {
+    grid-template-columns: minmax(12rem, 1fr) repeat(4, minmax(7rem, auto)) 10rem;
+    overflow-x: auto;
+  }
+
+  .generator-controls {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -828,5 +1038,54 @@ tbody tr:first-child td {
 
   .history-actions {
     grid-template-columns: 1fr 2.75rem;
+  }
+
+  .admin-shell {
+    width: min(100% - 1rem, 92rem);
+  }
+
+  .admin-session-bar {
+    justify-content: space-between;
+  }
+
+  .admin-add-form,
+  .generator-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-player-row {
+    grid-template-columns: 1fr 1fr;
+    overflow-x: visible;
+  }
+
+  .admin-player-name,
+  .admin-row-actions {
+    grid-column: 1 / -1;
+  }
+
+  .admin-player-fixed-table,
+  .admin-player-guest-preference {
+    min-width: 0;
+  }
+
+  .admin-row-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .generator-actions {
+    display: grid;
+  }
+
+  .publish-button {
+    margin-left: 0;
+  }
+
+  .admin-round {
+    overflow-x: auto;
+  }
+
+  .admin-schedule-row {
+    min-width: 42rem;
   }
 }
