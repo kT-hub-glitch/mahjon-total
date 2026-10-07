@@ -383,7 +383,7 @@ function chooseCandidate(pool, table, pairCounts, guestCoverage, guestTable) {
       ? table.some((seated) => seated.is_guest && seated.id === guestId)
       : player.guest_table_preference === guestTable;
     const preferenceBonus = guestTable && matchesPreference ? -160 : 0;
-    const uncoveredBonus = guestTable && repeats === 0 ? -110 : 0;
+    const uncoveredBonus = guestTable && repeats === 0 ? -1000 : 0;
     return { player, score: pairPenalty + preferenceBonus + uncoveredBonus + Math.random() * 24 };
   });
   ranked.sort((a, b) => a.score - b.score);
@@ -410,26 +410,28 @@ function buildScheduleCandidate(activePlayers, rounds, minScorers, maxScorers) {
       activePlayers.filter((player) => !fixedPlayers.some((fixed) => fixed.id === player.id)),
     );
     if (teamSettings.enabled) {
-      const tablesWithoutTeamPlayer = shuffled(
-        tableNames.filter((name) => !tables[name].some((player) => player.team_code)),
-      );
-      const availableTeamPlayers = remaining.filter((player) => player.team_code).length;
-      if (availableTeamPlayers < tablesWithoutTeamPlayer.length) return null;
-
-      for (const tableName of tablesWithoutTeamPlayer) {
-        const table = tables[tableName];
-        if (table.length >= 4) return null;
-        const guestTable = table.some((player) => player.is_guest) ? tableName : "";
-        const candidate = chooseCandidate(
-          remaining.filter((player) => player.team_code),
-          table,
-          pairCounts,
-          guestCoverage,
-          guestTable,
+      for (const teamCode of ["A", "B"]) {
+        const tablesWithoutTeam = shuffled(
+          tableNames.filter((name) => !tables[name].some((player) => player.team_code === teamCode)),
         );
-        if (!candidate) return null;
-        table.push(candidate);
-        remaining.splice(remaining.findIndex((player) => player.id === candidate.id), 1);
+        const availableTeamPlayers = remaining.filter((player) => player.team_code === teamCode).length;
+        if (availableTeamPlayers < tablesWithoutTeam.length) return null;
+
+        for (const tableName of tablesWithoutTeam) {
+          const table = tables[tableName];
+          if (table.length >= 4) return null;
+          const guestTable = table.some((player) => player.is_guest) ? tableName : "";
+          const candidate = chooseCandidate(
+            remaining.filter((player) => player.team_code === teamCode),
+            table,
+            pairCounts,
+            guestCoverage,
+            guestTable,
+          );
+          if (!candidate) return null;
+          table.push(candidate);
+          remaining.splice(remaining.findIndex((player) => player.id === candidate.id), 1);
+        }
       }
     }
 
@@ -524,9 +526,18 @@ function generateSchedule() {
     return;
   }
   const tableCount = activePlayers.length / 4;
-  if (teamSettings.enabled && activePlayers.filter((player) => player.team_code).length < tableCount) {
-    alert(`チーム所属選手を${tableCount}人以上設定してください。各卓に1人必要です。`);
-    return;
+  if (teamSettings.enabled) {
+    const unassignedPlayers = activePlayers.filter((player) => !player.team_code);
+    if (unassignedPlayers.length) {
+      alert(`チーム未設定の選手がいます。全選手をどちらかのチームに設定してください。\n${unassignedPlayers.map((player) => player.name).join("、")}`);
+      return;
+    }
+    const teamACount = activePlayers.filter((player) => player.team_code === "A").length;
+    const teamBCount = activePlayers.filter((player) => player.team_code === "B").length;
+    if (teamACount < tableCount || teamBCount < tableCount) {
+      alert(`各卓に両チームを配置するため、各チーム${tableCount}人以上設定してください。現在は${teamSettings.teamAName}${teamACount}人、${teamSettings.teamBName}${teamBCount}人です。`);
+      return;
+    }
   }
   const scorerCount = activePlayers.filter((player) => player.can_score).length;
   if (scorerCount < tableCount * minScorers || scorerCount > tableCount * maxScorers) {
@@ -543,7 +554,7 @@ function generateSchedule() {
 
   setScheduleStatus("作成中");
   let best = null;
-  for (let attempt = 0; attempt < 350; attempt += 1) {
+  for (let attempt = 0; attempt < 1200; attempt += 1) {
     const candidate = buildScheduleCandidate(activePlayers, rounds, minScorers, maxScorers);
     if (candidate && (!best || candidate.score < best.score)) best = candidate;
     if (best && best.uncovered === 0 && best.maxPairCount <= 2) break;
@@ -628,6 +639,12 @@ function validateDraftSchedule() {
   const activePlayers = participants.filter((player) => player.active);
   const issues = [];
   const guestCoverage = new Set();
+  if (teamSettings.enabled) {
+    const unassignedPlayers = activePlayers.filter((player) => !player.team_code);
+    if (unassignedPlayers.length) {
+      issues.push(`チーム未設定の選手: ${unassignedPlayers.map((player) => player.name).join("、")}`);
+    }
+  }
   draftSchedule.forEach((round, roundIndex) => {
     const ids = Object.values(round).flat().map((player) => player?.id).filter(Boolean);
     if (ids.length !== activePlayers.length || new Set(ids).size !== activePlayers.length) {
@@ -642,8 +659,13 @@ function validateDraftSchedule() {
       if (scorerCount < minScorers || scorerCount > maxScorers) {
         issues.push(`${roundIndex + 1}回戦${tableName}卓の点数計算できる人は${scorerCount}人です。`);
       }
-      if (teamSettings.enabled && !players.some((player) => player.team_code)) {
-        issues.push(`${roundIndex + 1}回戦${tableName}卓にチーム所属選手がいません。`);
+      if (teamSettings.enabled) {
+        if (!players.some((player) => player.team_code === "A")) {
+          issues.push(`${roundIndex + 1}回戦${tableName}卓に${teamSettings.teamAName}の選手がいません。`);
+        }
+        if (!players.some((player) => player.team_code === "B")) {
+          issues.push(`${roundIndex + 1}回戦${tableName}卓に${teamSettings.teamBName}の選手がいません。`);
+        }
       }
       players.filter((player) => player.fixed_table && player.fixed_table !== tableName).forEach((player) => {
         issues.push(`${player.name}の固定卓が守られていません。`);

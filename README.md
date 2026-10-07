@@ -34,7 +34,7 @@ GitHub PagesとSupabaseで動く、麻雀大会向けの簡易集計ツールで
 - 回戦数と各卓の点数計算人数を指定した卓組の自動作成
 - 自動作成後の手動入れ替え
 - 卓組のSupabaseへの公開保存
-- 2チームの所属設定、チーム合計スコア、各卓へのチーム所属選手配置
+- 2チームの所属設定、チーム合計スコア、各卓への両チーム選手配置
 
 初回のみ、Supabase DashboardのSQL Editorで `supabase_admin_setup.sql` を実行してください。Authenticationには、メールアドレス `admin@mahjong.local` の管理ユーザーを登録しておきます。管理画面にはメールアドレス入力欄は表示されません。
 
