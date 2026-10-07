@@ -397,7 +397,9 @@ function renderSchedule() {
   scheduleTableNames().forEach((tableName) => {
     const row = document.createElement("div");
     row.className = "schedule-row";
-    if (tableName === "E" || tableName === "J") row.classList.add("guest-table");
+    if (!state.teamSettings.enabled && (tableName === "E" || tableName === "J")) {
+      row.classList.add("guest-table");
+    }
 
     const label = document.createElement("strong");
     label.className = "schedule-table-name";
@@ -412,7 +414,9 @@ function renderSchedule() {
       member.textContent = name;
       const code = teamCodeByName(name);
       if (code) member.classList.add(teamClass(code));
-      if (name === "雛呑ちの" || name === "猫又めいど") member.classList.add("guest-name");
+      if (!state.teamSettings.enabled && (name === "雛呑ちの" || name === "猫又めいど")) {
+        member.classList.add("guest-name");
+      }
       if (name === selectedSchedulePlayer) member.classList.add("selected-player");
       members.append(member);
     });
