@@ -216,7 +216,8 @@ begin
     raise exception 'assignments must be an array';
   end if;
 
-  delete from public.schedule_assignments;
+  delete from public.schedule_assignments
+  where round_number between 1 and 20;
 
   insert into public.schedule_assignments (
     round_number,
