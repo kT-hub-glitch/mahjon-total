@@ -1032,6 +1032,28 @@ tbody tr:first-child td {
   color: var(--accent-dark);
 }
 
+.admin-schedule-row select.team-a {
+  border-color: rgba(185, 39, 53, 0.45);
+  background: var(--team-a-bg);
+  color: var(--team-a);
+  font-weight: 800;
+}
+
+.admin-schedule-row select.team-b {
+  border-color: rgba(31, 95, 174, 0.45);
+  background: var(--team-b-bg);
+  color: var(--team-b);
+  font-weight: 800;
+}
+
+.admin-schedule-row option.team-a {
+  color: var(--team-a);
+}
+
+.admin-schedule-row option.team-b {
+  color: var(--team-b);
+}
+
 @media (max-width: 1200px) {
   .admin-roster-heading {
     display: none;

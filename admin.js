@@ -735,12 +735,18 @@ function renderSchedulePreview() {
       row.append(label);
       players.forEach((player, seatIndex) => {
         const select = document.createElement("select");
+        if (teamSettings.enabled && player?.team_code) {
+          select.classList.add(player.team_code === "A" ? "team-a" : "team-b");
+        }
         select.setAttribute("aria-label", `${roundIndex + 1}回戦${tableName}卓 ${seatIndex + 1}人目`);
         activePlayers.forEach((candidate) => {
           const option = document.createElement("option");
           option.value = candidate.id;
           option.textContent = candidate.name;
           option.selected = candidate.id === player?.id;
+          if (teamSettings.enabled && candidate.team_code) {
+            option.classList.add(candidate.team_code === "A" ? "team-a" : "team-b");
+          }
           select.append(option);
         });
         select.addEventListener("change", () => swapPlayerInRound(roundIndex, tableName, seatIndex, select.value));
