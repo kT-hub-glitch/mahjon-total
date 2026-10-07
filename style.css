@@ -749,6 +749,22 @@ tbody tr:first-child td {
   font-size: 0.8rem;
 }
 
+.roster-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.compact-button {
+  min-height: 2.35rem;
+  padding: 0.45rem 0.8rem;
+}
+
+.compact-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
 .team-toggle {
   display: flex;
   align-items: center;

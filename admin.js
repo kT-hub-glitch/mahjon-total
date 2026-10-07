@@ -29,6 +29,7 @@ const els = {
   newPlayerCanScore: document.querySelector("#newPlayerCanScore"),
   newPlayerIsGuest: document.querySelector("#newPlayerIsGuest"),
   adminPlayerCount: document.querySelector("#adminPlayerCount"),
+  saveAllPlayersButton: document.querySelector("#saveAllPlayersButton"),
   adminRoster: document.querySelector("#adminRoster"),
   adminPlayerTemplate: document.querySelector("#adminPlayerTemplate"),
   generatorRounds: document.querySelector("#generatorRounds"),
@@ -205,6 +206,8 @@ function renderRoster() {
 
   participants.forEach((player) => {
     const row = els.adminPlayerTemplate.content.firstElementChild.cloneNode(true);
+    row.dataset.playerId = player.id;
+    row.dataset.active = String(player.active !== false);
     const name = row.querySelector(".admin-player-name");
     const scorer = row.querySelector(".admin-player-scorer");
     const guest = row.querySelector(".admin-player-guest");
@@ -273,6 +276,60 @@ async function saveParticipant(id, values) {
     return;
   }
   await loadParticipants();
+}
+
+function collectParticipantRow(row) {
+  const avoidPlayers = [...row.querySelectorAll(".admin-player-avoid")];
+  const avoidIds = avoidPlayers.map((select) => select.value).filter(Boolean);
+  if (new Set(avoidIds).size !== avoidIds.length) {
+    throw new Error(`${row.querySelector(".admin-player-name").value || "選手"}のNG選手が重複しています。`);
+  }
+  const name = row.querySelector(".admin-player-name").value.trim();
+  if (!name) throw new Error("選手名が空欄の行があります。");
+  const isGuest = row.querySelector(".admin-player-guest").checked;
+  return {
+    id: row.dataset.playerId,
+    name,
+    can_score: row.querySelector(".admin-player-scorer").checked,
+    is_guest: isGuest,
+    team_code: row.querySelector(".admin-player-team").value || null,
+    fixed_table: row.querySelector(".admin-player-fixed-table").value || null,
+    guest_table_preference: isGuest
+      ? null
+      : row.querySelector(".admin-player-guest-preference").value || null,
+    avoid_player_id: avoidPlayers[0].value || null,
+    avoid_player_id_2: avoidPlayers[1].value || null,
+    avoid_player_id_3: avoidPlayers[2].value || null,
+    active: row.dataset.active !== "false",
+  };
+}
+
+async function saveAllParticipants() {
+  let values;
+  try {
+    values = [...els.adminRoster.querySelectorAll(".admin-player-row")].map(collectParticipantRow);
+    const activeNames = values.filter((player) => player.active).map((player) => player.name);
+    if (new Set(activeNames).size !== activeNames.length) {
+      throw new Error("同じ選手名が重複しています。");
+    }
+  } catch (error) {
+    alert(error.message);
+    return;
+  }
+
+  const originalText = els.saveAllPlayersButton.textContent;
+  els.saveAllPlayersButton.disabled = true;
+  els.saveAllPlayersButton.textContent = "保存中";
+  const { error } = await db.from("participants").upsert(values, { onConflict: "id" });
+  els.saveAllPlayersButton.disabled = false;
+  els.saveAllPlayersButton.textContent = originalText;
+  if (error) {
+    console.error(error);
+    alert(`選手情報を一括保存できませんでした。\n${error.message}`);
+    return;
+  }
+  await loadParticipants();
+  alert("全選手の情報を保存しました。");
 }
 
 async function removeParticipant(player) {
@@ -725,6 +782,7 @@ els.teamEnabled.addEventListener("change", () => {
   renderRoster();
 });
 els.saveTeamSettingsButton.addEventListener("click", saveTeamSettings);
+els.saveAllPlayersButton.addEventListener("click", saveAllParticipants);
 
 els.addPlayerForm.addEventListener("submit", async (event) => {
   event.preventDefault();
