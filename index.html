@@ -8,7 +8,7 @@
       name="description"
       content="麻雀大会の選手、対局結果、順位点、合計ポイントをブラウザだけで集計できます。"
     />
-    <link rel="stylesheet" href="./style.css?v=20261007-admin" />
+    <link rel="stylesheet" href="./style.css?v=20261007-teams" />
   </head>
   <body>
     <header class="app-header">
@@ -106,6 +106,12 @@
       </section>
 
       <section id="rankingPage" class="page-view">
+        <section id="teamStandingsPanel" class="panel team-standings-panel" aria-labelledby="teamStandingsHeading" hidden>
+          <div class="section-title">
+            <h2 id="teamStandingsHeading">チームスコア</h2>
+          </div>
+          <div id="teamStandings" class="team-standings"></div>
+        </section>
         <section class="panel standings-panel" aria-labelledby="standingsHeading">
           <div class="section-title">
             <h2 id="standingsHeading">成績ランキング</h2>
@@ -152,6 +158,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="./event_schedule.js?v=20261004-hattorin-return"></script>
-    <script src="./app.js?v=20261007-admin" defer></script>
+    <script src="./app.js?v=20261007-teams" defer></script>
   </body>
 </html>

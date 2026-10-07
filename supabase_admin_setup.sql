@@ -10,6 +10,7 @@ alter table public.participants
   add column if not exists avoid_player_id uuid references public.participants(id) on delete set null,
   add column if not exists avoid_player_id_2 uuid references public.participants(id) on delete set null,
   add column if not exists avoid_player_id_3 uuid references public.participants(id) on delete set null,
+  add column if not exists team_code text check (team_code in ('A', 'B')),
   add column if not exists sort_order integer not null default 0;
 
 do $$
@@ -88,6 +89,18 @@ create table if not exists public.schedule_assignments (
   unique (round_number, participant_id)
 );
 
+create table if not exists public.tournament_settings (
+  id smallint primary key check (id = 1),
+  team_enabled boolean not null default false,
+  team_a_name text not null default 'チーム1',
+  team_b_name text not null default 'チーム2',
+  updated_at timestamptz not null default now()
+);
+
+insert into public.tournament_settings (id)
+values (1)
+on conflict (id) do nothing;
+
 create or replace function public.is_tournament_admin()
 returns boolean
 language sql
@@ -100,6 +113,7 @@ $$;
 
 alter table public.participants enable row level security;
 alter table public.schedule_assignments enable row level security;
+alter table public.tournament_settings enable row level security;
 
 do $$
 declare
@@ -109,7 +123,7 @@ begin
     select policyname, tablename
     from pg_policies
     where schemaname = 'public'
-      and tablename in ('participants', 'schedule_assignments')
+      and tablename in ('participants', 'schedule_assignments', 'tournament_settings')
   loop
     execute format('drop policy if exists %I on public.%I', policy_record.policyname, policy_record.tablename);
   end loop;
@@ -157,12 +171,31 @@ on public.schedule_assignments for delete
 to authenticated
 using (public.is_tournament_admin());
 
+create policy "settings_public_read"
+on public.tournament_settings for select
+to anon, authenticated
+using (true);
+
+create policy "settings_admin_insert"
+on public.tournament_settings for insert
+to authenticated
+with check (public.is_tournament_admin());
+
+create policy "settings_admin_update"
+on public.tournament_settings for update
+to authenticated
+using (public.is_tournament_admin())
+with check (public.is_tournament_admin());
+
 revoke insert, update, delete on public.participants from anon;
 revoke insert, update, delete on public.schedule_assignments from anon;
+revoke insert, update, delete on public.tournament_settings from anon;
 grant select on public.participants to anon, authenticated;
 grant select, insert, update, delete on public.participants to authenticated;
 grant select on public.schedule_assignments to anon, authenticated;
 grant select, insert, update, delete on public.schedule_assignments to authenticated;
+grant select on public.tournament_settings to anon, authenticated;
+grant select, insert, update on public.tournament_settings to authenticated;
 
 create or replace function public.replace_tournament_schedule(assignments jsonb)
 returns void

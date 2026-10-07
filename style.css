@@ -121,8 +121,60 @@ h2 {
 
 .standings-panel,
 .history-panel,
-.schedule-panel {
+.schedule-panel,
+.team-standings-panel {
   grid-column: 1 / -1;
+}
+
+.team-standings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.team-standing {
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 0.85rem;
+}
+
+.team-standing:nth-child(2) {
+  border-left-color: var(--gold);
+}
+
+.team-standing-rank {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: 50%;
+  background: #eef3ef;
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.team-standing > div {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.team-standing small {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.team-standing-score {
+  text-align: right;
+}
+
+.team-standing-score strong {
+  color: var(--accent-dark);
+  font-size: 1.15rem;
 }
 
 .view-tabs {
@@ -697,6 +749,32 @@ tbody tr:first-child td {
   font-size: 0.8rem;
 }
 
+.team-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.5rem;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.team-toggle input {
+  width: 1.2rem;
+  min-height: 1.2rem;
+  accent-color: var(--accent);
+}
+
+.team-settings-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  align-items: end;
+  gap: 0.75rem;
+}
+
+.team-settings-fields.disabled {
+  opacity: 0.58;
+}
+
 .admin-add-form {
   display: grid;
   grid-template-columns: minmax(12rem, 1fr) auto auto auto;
@@ -727,7 +805,7 @@ tbody tr:first-child td {
 .admin-roster-heading,
 .admin-player-row {
   display: grid;
-  grid-template-columns: minmax(9rem, 1.4fr) 6.5rem 6.5rem 7.5rem 9rem 9rem 10rem;
+  grid-template-columns: minmax(9rem, 1.4fr) 6.5rem 6.5rem 8rem 7.5rem 9rem 9rem 10rem;
   align-items: center;
   gap: 0.55rem;
 }
@@ -893,6 +971,14 @@ tbody tr:first-child td {
 
   .generator-controls {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .team-settings-fields {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .team-settings-fields .primary-button {
+    grid-column: 1 / -1;
   }
 }
 
@@ -1089,8 +1175,23 @@ tbody tr:first-child td {
   }
 
   .admin-add-form,
-  .generator-controls {
+  .generator-controls,
+  .team-settings-fields,
+  .team-standings {
     grid-template-columns: 1fr;
+  }
+
+  .team-settings-fields .primary-button {
+    grid-column: auto;
+  }
+
+  .team-standing {
+    grid-template-columns: 2.25rem minmax(0, 1fr);
+  }
+
+  .team-standing-score {
+    grid-column: 2;
+    text-align: left;
   }
 
   .admin-player-row {
@@ -1105,6 +1206,7 @@ tbody tr:first-child td {
 
   .admin-player-fixed-table,
   .admin-player-guest-preference,
+  .admin-player-team,
   .admin-player-avoid {
     min-width: 0;
   }

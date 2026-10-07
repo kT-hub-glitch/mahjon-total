@@ -6,6 +6,11 @@ const TABLE_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 let participants = [];
 let draftSchedule = [];
+let teamSettings = {
+  enabled: false,
+  teamAName: "チーム1",
+  teamBName: "チーム2",
+};
 
 const els = {
   loginPanel: document.querySelector("#loginPanel"),
@@ -14,6 +19,11 @@ const els = {
   loginStatus: document.querySelector("#loginStatus"),
   adminContent: document.querySelector("#adminContent"),
   logoutButton: document.querySelector("#logoutButton"),
+  teamEnabled: document.querySelector("#teamEnabled"),
+  teamSettingsFields: document.querySelector("#teamSettingsFields"),
+  teamAName: document.querySelector("#teamAName"),
+  teamBName: document.querySelector("#teamBName"),
+  saveTeamSettingsButton: document.querySelector("#saveTeamSettingsButton"),
   addPlayerForm: document.querySelector("#addPlayerForm"),
   newPlayerName: document.querySelector("#newPlayerName"),
   newPlayerCanScore: document.querySelector("#newPlayerCanScore"),
@@ -90,6 +100,14 @@ function playerOptions(selected = "", excludedId = "") {
     .join("");
 }
 
+function teamOptions(selected = "") {
+  return `
+    <option value="">所属なし</option>
+    <option value="A"${selected === "A" ? " selected" : ""}>${escapeHtml(teamSettings.teamAName)}</option>
+    <option value="B"${selected === "B" ? " selected" : ""}>${escapeHtml(teamSettings.teamBName)}</option>
+  `;
+}
+
 function isAvoidedPair(first, second) {
   const firstAvoids = [first?.avoid_player_id, first?.avoid_player_id_2, first?.avoid_player_id_3];
   const secondAvoids = [second?.avoid_player_id, second?.avoid_player_id_2, second?.avoid_player_id_3];
@@ -120,18 +138,64 @@ async function applySession(session) {
 }
 
 async function loadParticipants() {
-  const { data, error } = await db
-    .from("participants")
-    .select("*")
-    .order("sort_order", { ascending: true })
-    .order("created_at", { ascending: true });
-  if (error) {
-    console.error(error);
+  const [playersResult, settingsResult] = await Promise.all([
+    db
+      .from("participants")
+      .select("*")
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true }),
+    db.from("tournament_settings").select("*").eq("id", 1).maybeSingle(),
+  ]);
+  if (playersResult.error) {
+    console.error(playersResult.error);
     alert("選手情報を読み込めませんでした。Supabaseの設定SQLが完了しているか確認してください。");
     return;
   }
-  participants = data || [];
+  participants = playersResult.data || [];
+  if (settingsResult.data) {
+    teamSettings = {
+      enabled: Boolean(settingsResult.data.team_enabled),
+      teamAName: settingsResult.data.team_a_name || "チーム1",
+      teamBName: settingsResult.data.team_b_name || "チーム2",
+    };
+  }
+  renderTeamSettings();
   renderRoster();
+}
+
+function renderTeamSettings() {
+  els.teamEnabled.checked = teamSettings.enabled;
+  els.teamAName.value = teamSettings.teamAName;
+  els.teamBName.value = teamSettings.teamBName;
+  els.teamSettingsFields.classList.toggle("disabled", !teamSettings.enabled);
+  els.teamAName.disabled = !teamSettings.enabled;
+  els.teamBName.disabled = !teamSettings.enabled;
+  document.querySelectorAll(".admin-player-team").forEach((select) => {
+    select.disabled = !teamSettings.enabled;
+  });
+}
+
+async function saveTeamSettings() {
+  const values = {
+    id: 1,
+    team_enabled: els.teamEnabled.checked,
+    team_a_name: els.teamAName.value.trim() || "チーム1",
+    team_b_name: els.teamBName.value.trim() || "チーム2",
+  };
+  const { error } = await db.from("tournament_settings").upsert(values, { onConflict: "id" });
+  if (error) {
+    console.error(error);
+    alert(`チーム設定を保存できませんでした。\n${error.message}`);
+    return;
+  }
+  teamSettings = {
+    enabled: values.team_enabled,
+    teamAName: values.team_a_name,
+    teamBName: values.team_b_name,
+  };
+  renderTeamSettings();
+  renderRoster();
+  alert("チーム設定を保存しました。");
 }
 
 function renderRoster() {
@@ -144,12 +208,15 @@ function renderRoster() {
     const name = row.querySelector(".admin-player-name");
     const scorer = row.querySelector(".admin-player-scorer");
     const guest = row.querySelector(".admin-player-guest");
+    const team = row.querySelector(".admin-player-team");
     const fixedTable = row.querySelector(".admin-player-fixed-table");
     const guestPreference = row.querySelector(".admin-player-guest-preference");
     const avoidPlayers = [...row.querySelectorAll(".admin-player-avoid")];
     name.value = player.name;
     scorer.checked = Boolean(player.can_score);
     guest.checked = Boolean(player.is_guest);
+    team.innerHTML = teamOptions(player.team_code || "");
+    team.disabled = !teamSettings.enabled;
     fixedTable.innerHTML = tableOptions(player.fixed_table || "");
     guestPreference.innerHTML = guestOptions(player.guest_table_preference || "");
     const avoidIds = [player.avoid_player_id, player.avoid_player_id_2, player.avoid_player_id_3];
@@ -175,6 +242,7 @@ function renderRoster() {
         name: name.value.trim(),
         can_score: scorer.checked,
         is_guest: guest.checked,
+        team_code: team.value || null,
         fixed_table: fixedTable.value || null,
         guest_table_preference: guest.checked ? null : guestPreference.value || null,
         avoid_player_id: avoidPlayers[0].value || null,
@@ -281,11 +349,45 @@ function buildScheduleCandidate(activePlayers, rounds, minScorers, maxScorers) {
       tables[player.fixed_table].push(player);
     }
 
+    const remaining = shuffled(
+      activePlayers.filter((player) => !fixedPlayers.some((fixed) => fixed.id === player.id)),
+    );
+    if (teamSettings.enabled) {
+      const tablesWithoutTeamPlayer = shuffled(
+        tableNames.filter((name) => !tables[name].some((player) => player.team_code)),
+      );
+      const availableTeamPlayers = remaining.filter((player) => player.team_code).length;
+      if (availableTeamPlayers < tablesWithoutTeamPlayer.length) return null;
+
+      for (const tableName of tablesWithoutTeamPlayer) {
+        const table = tables[tableName];
+        if (table.length >= 4) return null;
+        const guestTable = table.some((player) => player.is_guest) ? tableName : "";
+        const candidate = chooseCandidate(
+          remaining.filter((player) => player.team_code),
+          table,
+          pairCounts,
+          guestCoverage,
+          guestTable,
+        );
+        if (!candidate) return null;
+        table.push(candidate);
+        remaining.splice(remaining.findIndex((player) => player.id === candidate.id), 1);
+      }
+    }
+
     const targetScorers = Object.fromEntries(
       tableNames.map((name) => [name, Math.max(minScorers, tables[name].filter((player) => player.can_score).length)]),
     );
+    if (
+      tableNames.some((name) => {
+        const scorerCount = tables[name].filter((player) => player.can_score).length;
+        return scorerCount > maxScorers || tables[name].length + Math.max(0, minScorers - scorerCount) > 4;
+      })
+    ) return null;
+    const placedPlayers = Object.values(tables).flat();
     let scorerSlots = activePlayers.filter((player) => player.can_score).length -
-      fixedPlayers.filter((player) => player.can_score).length;
+      placedPlayers.filter((player) => player.can_score).length;
     const requiredSlots = tableNames.reduce(
       (sum, name) => sum + Math.max(0, targetScorers[name] - tables[name].filter((player) => player.can_score).length),
       0,
@@ -303,7 +405,6 @@ function buildScheduleCandidate(activePlayers, rounds, minScorers, maxScorers) {
       scorerSlots -= 1;
     }
 
-    const remaining = shuffled(activePlayers.filter((player) => !fixedPlayers.some((fixed) => fixed.id === player.id)));
     const orderedTables = [...tableNames].sort((a, b) => {
       const aGuest = tables[a].some((player) => player.is_guest) ? 0 : 1;
       const bGuest = tables[b].some((player) => player.is_guest) ? 0 : 1;
@@ -366,6 +467,10 @@ function generateSchedule() {
     return;
   }
   const tableCount = activePlayers.length / 4;
+  if (teamSettings.enabled && activePlayers.filter((player) => player.team_code).length < tableCount) {
+    alert(`チーム所属選手を${tableCount}人以上設定してください。各卓に1人必要です。`);
+    return;
+  }
   const scorerCount = activePlayers.filter((player) => player.can_score).length;
   if (scorerCount < tableCount * minScorers || scorerCount > tableCount * maxScorers) {
     alert(`点数計算できる人が${scorerCount}人です。各卓${minScorers}〜${maxScorers}人にするには人数が足りないか多すぎます。`);
@@ -479,6 +584,9 @@ function validateDraftSchedule() {
       const scorerCount = players.filter((player) => player.can_score).length;
       if (scorerCount < minScorers || scorerCount > maxScorers) {
         issues.push(`${roundIndex + 1}回戦${tableName}卓の点数計算できる人は${scorerCount}人です。`);
+      }
+      if (teamSettings.enabled && !players.some((player) => player.team_code)) {
+        issues.push(`${roundIndex + 1}回戦${tableName}卓にチーム所属選手がいません。`);
       }
       players.filter((player) => player.fixed_table && player.fixed_table !== tableName).forEach((player) => {
         issues.push(`${player.name}の固定卓が守られていません。`);
@@ -611,6 +719,13 @@ els.logoutButton.addEventListener("click", async () => {
   await applySession(null);
 });
 
+els.teamEnabled.addEventListener("change", () => {
+  teamSettings.enabled = els.teamEnabled.checked;
+  renderTeamSettings();
+  renderRoster();
+});
+els.saveTeamSettingsButton.addEventListener("click", saveTeamSettings);
+
 els.addPlayerForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const name = els.newPlayerName.value.trim();
@@ -623,6 +738,7 @@ els.addPlayerForm.addEventListener("submit", async (event) => {
     name,
     can_score: els.newPlayerCanScore.checked,
     is_guest: els.newPlayerIsGuest.checked,
+    team_code: null,
     active: true,
     sort_order: sortOrder,
     avoid_player_id: null,

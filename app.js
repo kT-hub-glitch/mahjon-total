@@ -49,6 +49,11 @@ const FIXED_SETTINGS = {
   returnScore: 30000,
   uma: [50, 10, -10, -30],
 };
+const DEFAULT_TEAM_SETTINGS = {
+  enabled: false,
+  teamAName: "チーム1",
+  teamBName: "チーム2",
+};
 const PLAYER_NAME_MIGRATIONS = [
   { from: "ちぃーちぃー", to: "なちぽ" },
   { from: "星屑マル", to: "サンピン" },
@@ -59,6 +64,7 @@ const PLAYER_NAME_MIGRATIONS = [
 
 const defaultState = {
   settings: FIXED_SETTINGS,
+  teamSettings: DEFAULT_TEAM_SETTINGS,
   players: FIXED_PLAYER_NAMES.map((name, index) => ({
     id: `fixed-player-${index + 1}`,
     name,
@@ -98,6 +104,8 @@ const els = {
   scoreTotal: document.querySelector("#scoreTotal"),
   seatTemplate: document.querySelector("#seatTemplate"),
   standingsBody: document.querySelector("#standingsBody"),
+  teamStandingsPanel: document.querySelector("#teamStandingsPanel"),
+  teamStandings: document.querySelector("#teamStandings"),
   playerDetailDialog: document.querySelector("#playerDetailDialog"),
   detailPlayerName: document.querySelector("#detailPlayerName"),
   detailStats: document.querySelector("#detailStats"),
@@ -120,6 +128,7 @@ async function loadRemoteState({ keepForm = false } = {}) {
     { data: participants, error: playersError },
     { data: matches, error: matchesError },
     { data: assignments, error: scheduleError },
+    { data: teamSettings },
   ] = await Promise.all([
     db.from("participants").select("*").order("created_at", { ascending: true }),
     db
@@ -132,6 +141,7 @@ async function loadRemoteState({ keepForm = false } = {}) {
       .order("round_number", { ascending: true })
       .order("table_name", { ascending: true })
       .order("seat_number", { ascending: true }),
+    db.from("tournament_settings").select("*").eq("id", 1).maybeSingle(),
   ]);
 
   if (playersError || matchesError) {
@@ -147,6 +157,13 @@ async function loadRemoteState({ keepForm = false } = {}) {
   const rosterHasActiveFlag = (participants || []).some((player) => typeof player.active === "boolean");
   state = {
     settings: structuredClone(FIXED_SETTINGS),
+    teamSettings: teamSettings
+      ? {
+          enabled: Boolean(teamSettings.team_enabled),
+          teamAName: teamSettings.team_a_name || "チーム1",
+          teamBName: teamSettings.team_b_name || "チーム2",
+        }
+      : structuredClone(DEFAULT_TEAM_SETTINGS),
     players: (participants || [])
       .filter((player) =>
         rosterHasActiveFlag ? player.active !== false : FIXED_PLAYER_NAMES.includes(player.name),
@@ -155,6 +172,7 @@ async function loadRemoteState({ keepForm = false } = {}) {
         id: player.id,
         name: player.name,
         sortOrder: Number(player.sort_order ?? FIXED_PLAYER_NAMES.indexOf(player.name)),
+        teamCode: player.team_code || "",
       }))
       .sort((a, b) => {
         const aIndex = a.sortOrder < 0 ? Number.MAX_SAFE_INTEGER : a.sortOrder;
@@ -248,6 +266,7 @@ function aggregateStandings() {
   const rows = state.players.map((player) => ({
     id: player.id,
     name: player.name,
+    teamCode: player.teamCode,
     games: 0,
     total: 0,
     rawScore: 0,
@@ -569,6 +588,46 @@ function renderStandings() {
       }
     });
     els.standingsBody.append(tr);
+  });
+
+  renderTeamStandings(rows);
+}
+
+function renderTeamStandings(rows) {
+  const enabled = Boolean(state.teamSettings?.enabled);
+  els.teamStandingsPanel.hidden = !enabled;
+  els.teamStandings.innerHTML = "";
+  if (!enabled) return;
+
+  const teams = [
+    { code: "A", name: state.teamSettings.teamAName },
+    { code: "B", name: state.teamSettings.teamBName },
+  ].map((team) => {
+    const members = rows.filter((row) => row.teamCode === team.code);
+    return {
+      ...team,
+      members,
+      total: members.reduce((sum, member) => sum + member.total, 0),
+      games: members.reduce((sum, member) => sum + member.games, 0),
+    };
+  });
+
+  teams.sort((first, second) => second.total - first.total);
+  teams.forEach((team, index) => {
+    const item = document.createElement("article");
+    item.className = "team-standing";
+    item.innerHTML = `
+      <span class="team-standing-rank">${index + 1}</span>
+      <div>
+        <strong>${escapeHtml(team.name)}</strong>
+        <small>${team.members.length ? team.members.map((member) => escapeHtml(member.name)).join("、") : "所属選手なし"}</small>
+      </div>
+      <div class="team-standing-score">
+        <strong>${formatPoint(team.total)}</strong>
+        <small>${team.games}対局</small>
+      </div>
+    `;
+    els.teamStandings.append(item);
   });
 }
 
