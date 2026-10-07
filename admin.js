@@ -43,15 +43,45 @@ function setScheduleStatus(text, isError = false) {
   els.scheduleStatus.classList.toggle("error", isError);
 }
 
-function tableOptions(selected = "", includeGuestChoice = false) {
-  const firstLabel = includeGuestChoice ? "指定なし" : "固定なし";
-  return [`<option value="">${firstLabel}</option>`]
+function tableOptions(selected = "") {
+  return ['<option value="">固定なし</option>']
     .concat(
       TABLE_LETTERS.slice(0, Math.max(10, participants.filter((player) => player.active).length / 4)).map(
         (table) => `<option value="${table}"${table === selected ? " selected" : ""}>${table}卓</option>`,
       ),
     )
     .join("");
+}
+
+function preferredGuestId(value) {
+  if (!value) return "";
+  const directGuest = participants.find((player) => player.is_guest && player.id === value);
+  if (directGuest) return directGuest.id;
+  const legacyTableGuest = participants.find(
+    (player) => player.is_guest && player.fixed_table === value,
+  );
+  return legacyTableGuest?.id || "";
+}
+
+function guestOptions(selected = "") {
+  const selectedGuestId = preferredGuestId(selected);
+  return ['<option value="">指定なし</option>']
+    .concat(
+      participants
+        .filter((player) => player.active && player.is_guest)
+        .map(
+          (guest) =>
+            `<option value="${guest.id}"${guest.id === selectedGuestId ? " selected" : ""}>${escapeHtml(guest.name)}</option>`,
+        ),
+    )
+    .join("");
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (char) => {
+    const entities = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+    return entities[char];
+  });
 }
 
 async function applySession(session) {
@@ -92,7 +122,7 @@ function renderRoster() {
     scorer.checked = Boolean(player.can_score);
     guest.checked = Boolean(player.is_guest);
     fixedTable.innerHTML = tableOptions(player.fixed_table || "");
-    guestPreference.innerHTML = tableOptions(player.guest_table_preference || "", true);
+    guestPreference.innerHTML = guestOptions(player.guest_table_preference || "");
     guestPreference.disabled = guest.checked;
     row.classList.toggle("inactive", !player.active);
 
@@ -168,7 +198,10 @@ function pairKey(firstId, secondId) {
 function chooseCandidate(pool, table, pairCounts, guestCoverage, guestTable) {
   const eligible = pool.filter((player) => {
     if (!guestTable || !player.guest_table_preference) return true;
-    return player.guest_table_preference === guestTable;
+    const guestId = preferredGuestId(player.guest_table_preference);
+    return guestId
+      ? table.some((seated) => seated.is_guest && seated.id === guestId)
+      : player.guest_table_preference === guestTable;
   });
   if (!eligible.length) return null;
   const ranked = eligible.map((player) => {
@@ -176,7 +209,11 @@ function chooseCandidate(pool, table, pairCounts, guestCoverage, guestTable) {
     const pairPenalty = guestTable || table.length
       ? table.reduce((sum, seated) => sum + (pairCounts.get(pairKey(player.id, seated.id)) || 0) * 18, 0)
       : 0;
-    const preferenceBonus = guestTable && player.guest_table_preference === guestTable ? -160 : 0;
+    const guestId = preferredGuestId(player.guest_table_preference);
+    const matchesPreference = guestId
+      ? table.some((seated) => seated.is_guest && seated.id === guestId)
+      : player.guest_table_preference === guestTable;
+    const preferenceBonus = guestTable && matchesPreference ? -160 : 0;
     const uncoveredBonus = guestTable && repeats === 0 ? -110 : 0;
     return { player, score: pairPenalty + preferenceBonus + uncoveredBonus + Math.random() * 24 };
   });
@@ -405,8 +442,13 @@ function validateDraftSchedule() {
         players.filter((player) => !player.is_guest).forEach((player) => guestCoverage.add(player.id));
       }
       players.filter((player) => player.guest_table_preference).forEach((player) => {
-        if (players.some((entry) => entry.is_guest) && player.guest_table_preference !== tableName) {
-          issues.push(`${player.name}のゲスト同卓指定が守られていません。`);
+        const guestId = preferredGuestId(player.guest_table_preference);
+        const matchesPreference = guestId
+          ? players.some((entry) => entry.is_guest && entry.id === guestId)
+          : player.guest_table_preference === tableName;
+        if (players.some((entry) => entry.is_guest) && !matchesPreference) {
+          const guestName = participants.find((entry) => entry.id === guestId)?.name || "指定ゲスト";
+          issues.push(`${player.name}が${guestName}以外のゲストと同卓しています。`);
         }
       });
     });

@@ -66,7 +66,12 @@ set is_guest = name in ('雛呑ちの', '猫又めいど'),
       else fixed_table
     end,
     guest_table_preference = case
-      when name = 'ムック08' then 'J'
+      when name = 'ムック08' then (
+        select id::text
+        from public.participants
+        where name = '猫又めいど'
+        limit 1
+      )
       else guest_table_preference
     end;
 

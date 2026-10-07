@@ -67,7 +67,7 @@
             <span>点数計算</span>
             <span>ゲスト</span>
             <span>固定卓</span>
-            <span>ゲスト同卓指定</span>
+            <span>同卓するゲスト</span>
             <span></span>
           </div>
           <div id="adminRoster" class="admin-roster"></div>
@@ -119,7 +119,7 @@
         <label class="compact-check"><input class="admin-player-scorer" type="checkbox" />可</label>
         <label class="compact-check"><input class="admin-player-guest" type="checkbox" />ゲスト</label>
         <select class="admin-player-fixed-table" aria-label="固定卓"></select>
-        <select class="admin-player-guest-preference" aria-label="ゲスト同卓指定"></select>
+        <select class="admin-player-guest-preference" aria-label="同卓するゲスト"></select>
         <div class="admin-row-actions">
           <button class="ghost-button admin-save-player" type="button">保存</button>
           <button class="danger-button admin-delete-player" type="button">削除</button>
@@ -129,6 +129,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="./event_schedule.js?v=20261004-hattorin-return"></script>
-    <script src="./admin.js?v=20261007-admin" defer></script>
+    <script src="./admin.js?v=20261007-guest-name" defer></script>
   </body>
 </html>
