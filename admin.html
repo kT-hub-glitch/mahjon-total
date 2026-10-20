@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>大会管理 | 麻雀大会集計ツール</title>
     <meta name="robots" content="noindex,nofollow" />
-    <link rel="stylesheet" href="./style.css?v=20261020-team-leaders" />
+    <link rel="stylesheet" href="./style.css?v=20261007-vivid-team-colors" />
   </head>
   <body>
     <header class="app-header admin-header">
@@ -110,7 +110,6 @@
             <span>点数計算</span>
             <span>ゲスト</span>
             <span>チーム</span>
-            <span>リーダー</span>
             <span>固定卓</span>
             <span>同卓するゲスト</span>
             <span>NG選手（3人まで）</span>
@@ -145,10 +144,6 @@
               <input id="requireGuestMeeting" type="checkbox" checked />
               全選手を1回以上ゲスト卓へ
             </label>
-            <label id="leaderMeetingControl" class="check-control generator-check">
-              <input id="requireLeaderMeeting" type="checkbox" />
-              両チームリーダーを1回以上同卓
-            </label>
           </div>
 
           <div class="generator-actions">
@@ -171,9 +166,6 @@
         <label class="admin-select-field admin-team-field">
           <span>チーム</span>
           <select class="admin-player-team" aria-label="所属チーム"></select>
-        </label>
-        <label class="compact-check admin-player-leader">
-          <input type="checkbox" />リーダー
         </label>
         <label class="admin-select-field">
           <span>固定卓</span>
@@ -200,6 +192,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="./event_schedule.js?v=20261004-hattorin-return"></script>
-    <script src="./admin.js?v=20261020-team-leaders" defer></script>
+    <script src="./admin.js?v=20261007-schedule-save-diagnostics" defer></script>
   </body>
 </html>

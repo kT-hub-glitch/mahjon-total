@@ -906,7 +906,7 @@ tbody tr:first-child td {
 .admin-roster-heading,
 .admin-player-row {
   display: grid;
-  grid-template-columns: minmax(9rem, 1.4fr) 5.5rem 5.5rem 8rem 6.5rem 7.5rem 9rem 9rem 10rem;
+  grid-template-columns: minmax(9rem, 1.4fr) 6.5rem 6.5rem 8rem 7.5rem 9rem 9rem 10rem;
   align-items: center;
   gap: 0.55rem;
 }
@@ -963,7 +963,7 @@ tbody tr:first-child td {
 
 .generator-controls {
   display: grid;
-  grid-template-columns: repeat(3, minmax(9rem, 1fr)) repeat(2, minmax(13rem, 1.2fr));
+  grid-template-columns: repeat(3, minmax(10rem, 1fr)) minmax(14rem, auto);
   align-items: end;
   gap: 0.75rem;
   margin-bottom: 0.9rem;
@@ -973,10 +973,6 @@ tbody tr:first-child td {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 0.55rem 0.75rem;
-}
-
-.generator-check.disabled {
-  opacity: 0.5;
 }
 
 .generator-actions {

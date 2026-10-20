@@ -11,7 +11,6 @@ alter table public.participants
   add column if not exists avoid_player_id_2 uuid references public.participants(id) on delete set null,
   add column if not exists avoid_player_id_3 uuid references public.participants(id) on delete set null,
   add column if not exists team_code text check (team_code in ('A', 'B')),
-  add column if not exists is_team_leader boolean not null default false,
   add column if not exists sort_order integer not null default 0;
 
 do $$
