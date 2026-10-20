@@ -39,6 +39,8 @@ const els = {
   generatorMinScorers: document.querySelector("#generatorMinScorers"),
   generatorMaxScorers: document.querySelector("#generatorMaxScorers"),
   requireGuestMeeting: document.querySelector("#requireGuestMeeting"),
+  requireLeaderMeeting: document.querySelector("#requireLeaderMeeting"),
+  leaderMeetingControl: document.querySelector("#leaderMeetingControl"),
   loadCurrentScheduleButton: document.querySelector("#loadCurrentScheduleButton"),
   generateScheduleButton: document.querySelector("#generateScheduleButton"),
   publishScheduleButton: document.querySelector("#publishScheduleButton"),
@@ -176,8 +178,14 @@ function renderTeamSettings() {
   els.teamSettingsFields.classList.toggle("disabled", !teamSettings.enabled);
   els.teamAName.disabled = !teamSettings.enabled;
   els.teamBName.disabled = !teamSettings.enabled;
+  els.requireLeaderMeeting.disabled = !teamSettings.enabled;
+  els.leaderMeetingControl.classList.toggle("disabled", !teamSettings.enabled);
   document.querySelectorAll(".admin-player-team").forEach((select) => {
     select.disabled = !teamSettings.enabled;
+  });
+  document.querySelectorAll(".admin-player-leader input").forEach((checkbox) => {
+    const teamSelect = checkbox.closest(".admin-player-row")?.querySelector(".admin-player-team");
+    checkbox.disabled = !teamSettings.enabled || !teamSelect?.value;
   });
 }
 
@@ -219,6 +227,7 @@ function renderRoster() {
     const scorer = row.querySelector(".admin-player-scorer");
     const guest = row.querySelector(".admin-player-guest");
     const team = row.querySelector(".admin-player-team");
+    const leader = row.querySelector(".admin-player-leader input");
     const fixedTable = row.querySelector(".admin-player-fixed-table");
     const guestPreference = row.querySelector(".admin-player-guest-preference");
     const avoidPlayers = [...row.querySelectorAll(".admin-player-avoid")];
@@ -227,6 +236,8 @@ function renderRoster() {
     guest.checked = Boolean(player.is_guest);
     team.innerHTML = teamOptions(player.team_code || "");
     team.disabled = !teamSettings.enabled;
+    leader.checked = Boolean(player.is_team_leader);
+    leader.disabled = !teamSettings.enabled || !player.team_code;
     fixedTable.innerHTML = tableOptions(player.fixed_table || "");
     guestPreference.innerHTML = guestOptions(player.guest_table_preference || "");
     const avoidIds = [player.avoid_player_id, player.avoid_player_id_2, player.avoid_player_id_3];
@@ -243,6 +254,8 @@ function renderRoster() {
     team.addEventListener("change", () => {
       row.classList.toggle("team-a-row", teamSettings.enabled && team.value === "A");
       row.classList.toggle("team-b-row", teamSettings.enabled && team.value === "B");
+      leader.disabled = !teamSettings.enabled || !team.value;
+      if (!team.value) leader.checked = false;
     });
 
     guest.addEventListener("change", () => {
@@ -260,6 +273,7 @@ function renderRoster() {
         can_score: scorer.checked,
         is_guest: guest.checked,
         team_code: team.value || null,
+        is_team_leader: leader.checked,
         fixed_table: fixedTable.value || null,
         guest_table_preference: guest.checked ? null : guestPreference.value || null,
         avoid_player_id: avoidPlayers[0].value || null,
@@ -273,6 +287,20 @@ function renderRoster() {
   });
 }
 
+function teamLeaderValidationMessage(players) {
+  const activeLeaders = players.filter((player) => player.active !== false && player.is_team_leader);
+  const leaderWithoutTeam = activeLeaders.find((player) => !player.team_code);
+  if (leaderWithoutTeam) return `${leaderWithoutTeam.name}はチーム未設定のためリーダーにできません。`;
+  for (const teamCode of ["A", "B"]) {
+    const leaders = activeLeaders.filter((player) => player.team_code === teamCode);
+    if (leaders.length > 1) {
+      const teamName = teamCode === "A" ? teamSettings.teamAName : teamSettings.teamBName;
+      return `${teamName}のリーダーは1人だけ設定してください。`;
+    }
+  }
+  return "";
+}
+
 async function saveParticipant(id, values) {
   if (!values.name) {
     alert("選手名を入力してください。");
@@ -281,6 +309,13 @@ async function saveParticipant(id, values) {
   const duplicate = participants.some((player) => player.id !== id && player.name === values.name && player.active);
   if (duplicate) {
     alert("同じ選手名がすでに登録されています。");
+    return;
+  }
+  const leaderError = teamLeaderValidationMessage(
+    participants.map((player) => (player.id === id ? { ...player, ...values } : player)),
+  );
+  if (leaderError) {
+    alert(leaderError);
     return;
   }
   const { error } = await db.from("participants").update(values).eq("id", id);
@@ -307,6 +342,7 @@ function collectParticipantRow(row) {
     can_score: row.querySelector(".admin-player-scorer").checked,
     is_guest: isGuest,
     team_code: row.querySelector(".admin-player-team").value || null,
+    is_team_leader: row.querySelector(".admin-player-leader input").checked,
     fixed_table: row.querySelector(".admin-player-fixed-table").value || null,
     guest_table_preference: isGuest
       ? null
@@ -326,6 +362,8 @@ async function saveAllParticipants() {
     if (new Set(activeNames).size !== activeNames.length) {
       throw new Error("同じ選手名が重複しています。");
     }
+    const leaderError = teamLeaderValidationMessage(values);
+    if (leaderError) throw new Error(leaderError);
   } catch (error) {
     alert(error.message);
     return;
@@ -404,13 +442,22 @@ function chooseCandidate(pool, table, pairCounts, guestCoverage, guestTable) {
   return ranked[0].player;
 }
 
-function buildScheduleCandidate(activePlayers, rounds, minScorers, maxScorers) {
+function buildScheduleCandidate(activePlayers, rounds, minScorers, maxScorers, leaderPair = null) {
   const tableCount = activePlayers.length / 4;
   const tableNames = TABLE_LETTERS.slice(0, tableCount);
   const fixedPlayers = activePlayers.filter((player) => player.fixed_table);
   const pairCounts = new Map();
   const guestCoverage = new Map();
   const schedule = [];
+  const leaderMeetingRound = leaderPair ? Math.floor(Math.random() * rounds) : -1;
+
+  if (
+    leaderPair &&
+    leaderPair[0].fixed_table &&
+    leaderPair[1].fixed_table &&
+    leaderPair[0].fixed_table !== leaderPair[1].fixed_table
+  ) return null;
+  if (leaderPair && isAvoidedPair(leaderPair[0], leaderPair[1])) return null;
 
   for (let roundIndex = 0; roundIndex < rounds; roundIndex += 1) {
     const tables = Object.fromEntries(tableNames.map((name) => [name, []]));
@@ -420,8 +467,32 @@ function buildScheduleCandidate(activePlayers, rounds, minScorers, maxScorers) {
       tables[player.fixed_table].push(player);
     }
 
+    if (leaderPair && roundIndex === leaderMeetingRound) {
+      const fixedLeader = leaderPair.find((leader) => leader.fixed_table);
+      const candidateTables = fixedLeader
+        ? [fixedLeader.fixed_table]
+        : shuffled(tableNames).filter((tableName) => tables[tableName].length <= 2);
+      const leaderTableName = candidateTables.find((tableName) => {
+        const seated = tables[tableName];
+        return leaderPair.every(
+          (leader) =>
+            seated.some((player) => player.id === leader.id) ||
+            (seated.length < 4 && !seated.some((player) => isAvoidedPair(leader, player))),
+        );
+      });
+      if (!leaderTableName) return null;
+      const leaderTable = tables[leaderTableName];
+      for (const leader of leaderPair) {
+        if (leaderTable.some((player) => player.id === leader.id)) continue;
+        if (leader.fixed_table && leader.fixed_table !== leaderTableName) return null;
+        if (leaderTable.length >= 4 || leaderTable.some((player) => isAvoidedPair(leader, player))) return null;
+        leaderTable.push(leader);
+      }
+    }
+
+    const seatedIds = new Set(Object.values(tables).flat().map((player) => player.id));
     const remaining = shuffled(
-      activePlayers.filter((player) => !fixedPlayers.some((fixed) => fixed.id === player.id)),
+      activePlayers.filter((player) => !seatedIds.has(player.id)),
     );
     if (teamSettings.enabled) {
       for (const teamCode of ["A", "B"]) {
@@ -523,7 +594,14 @@ function buildScheduleCandidate(activePlayers, rounds, minScorers, maxScorers) {
   const repeatedPairs = [...pairCounts.values()].reduce((sum, count) => sum + Math.max(0, count - 1) ** 2, 0);
   const uncovered = activePlayers.filter((player) => !player.is_guest && !guestCoverage.get(player.id)).length;
   const maxPairCount = Math.max(0, ...pairCounts.values());
-  return { schedule, score: repeatedPairs * 20 + uncovered * 10000 + maxPairCount * 200, uncovered, maxPairCount };
+  const leadersMet = !leaderPair || (pairCounts.get(pairKey(leaderPair[0].id, leaderPair[1].id)) || 0) > 0;
+  return {
+    schedule,
+    score: repeatedPairs * 20 + uncovered * 10000 + maxPairCount * 200,
+    uncovered,
+    maxPairCount,
+    leadersMet,
+  };
 }
 
 function generateSchedule() {
@@ -531,6 +609,8 @@ function generateSchedule() {
   const rounds = Number(els.generatorRounds.value);
   const minScorers = Number(els.generatorMinScorers.value);
   const maxScorers = Number(els.generatorMaxScorers.value);
+  const requireLeaderMeeting = teamSettings.enabled && els.requireLeaderMeeting.checked;
+  let leaderPair = null;
   if (!activePlayers.length || activePlayers.length % 4 !== 0) {
     alert("参加選手数を4の倍数にしてください。");
     return;
@@ -552,6 +632,27 @@ function generateSchedule() {
       alert(`各卓に両チームを配置するため、各チーム${tableCount}人以上設定してください。現在は${teamSettings.teamAName}${teamACount}人、${teamSettings.teamBName}${teamBCount}人です。`);
       return;
     }
+    if (requireLeaderMeeting) {
+      const teamALeaders = activePlayers.filter((player) => player.team_code === "A" && player.is_team_leader);
+      const teamBLeaders = activePlayers.filter((player) => player.team_code === "B" && player.is_team_leader);
+      if (teamALeaders.length !== 1 || teamBLeaders.length !== 1) {
+        alert(`リーダー同卓を指定する場合は、${teamSettings.teamAName}と${teamSettings.teamBName}にリーダーを1人ずつ設定してください。`);
+        return;
+      }
+      leaderPair = [teamALeaders[0], teamBLeaders[0]];
+      if (isAvoidedPair(leaderPair[0], leaderPair[1])) {
+        alert("両チームのリーダーがNG選手に設定されているため、同卓できません。");
+        return;
+      }
+      if (
+        leaderPair[0].fixed_table &&
+        leaderPair[1].fixed_table &&
+        leaderPair[0].fixed_table !== leaderPair[1].fixed_table
+      ) {
+        alert("両チームのリーダーが別々の固定卓に設定されているため、同卓できません。");
+        return;
+      }
+    }
   }
   const scorerCount = activePlayers.filter((player) => player.can_score).length;
   if (scorerCount < tableCount * minScorers || scorerCount > tableCount * maxScorers) {
@@ -569,9 +670,9 @@ function generateSchedule() {
   setScheduleStatus("作成中");
   let best = null;
   for (let attempt = 0; attempt < 1200; attempt += 1) {
-    const candidate = buildScheduleCandidate(activePlayers, rounds, minScorers, maxScorers);
+    const candidate = buildScheduleCandidate(activePlayers, rounds, minScorers, maxScorers, leaderPair);
     if (candidate && (!best || candidate.score < best.score)) best = candidate;
-    if (best && best.uncovered === 0 && best.maxPairCount <= 2) break;
+    if (best && best.uncovered === 0 && best.maxPairCount <= 2 && best.leadersMet) break;
   }
   if (!best) {
     setScheduleStatus("作成失敗", true);
@@ -710,6 +811,21 @@ function validateDraftSchedule() {
     const uncovered = activePlayers.filter((player) => !player.is_guest && !guestCoverage.has(player.id));
     if (uncovered.length) issues.push(`ゲストと同卓していない選手: ${uncovered.map((player) => player.name).join("、")}`);
   }
+  if (teamSettings.enabled && els.requireLeaderMeeting.checked) {
+    const teamALeaders = activePlayers.filter((player) => player.team_code === "A" && player.is_team_leader);
+    const teamBLeaders = activePlayers.filter((player) => player.team_code === "B" && player.is_team_leader);
+    if (teamALeaders.length !== 1 || teamBLeaders.length !== 1) {
+      issues.push("両チームのリーダーを1人ずつ設定してください。");
+    } else {
+      const leaderIds = new Set([teamALeaders[0].id, teamBLeaders[0].id]);
+      const leadersMet = draftSchedule.some((round) =>
+        Object.values(round).some(
+          (players) => players.filter((player) => leaderIds.has(player?.id)).length === 2,
+        ),
+      );
+      if (!leadersMet) issues.push("両チームのリーダーが1回以上同卓していません。");
+    }
+  }
   return [...new Set(issues)];
 }
 
@@ -742,7 +858,7 @@ function renderSchedulePreview() {
         activePlayers.forEach((candidate) => {
           const option = document.createElement("option");
           option.value = candidate.id;
-          option.textContent = candidate.name;
+          option.textContent = teamSettings.enabled && candidate.is_team_leader ? `★ ${candidate.name}` : candidate.name;
           option.selected = candidate.id === player?.id;
           if (teamSettings.enabled && candidate.team_code) {
             option.classList.add(candidate.team_code === "A" ? "team-a" : "team-b");
@@ -848,6 +964,7 @@ els.addPlayerForm.addEventListener("submit", async (event) => {
     can_score: els.newPlayerCanScore.checked,
     is_guest: els.newPlayerIsGuest.checked,
     team_code: null,
+    is_team_leader: false,
     active: true,
     sort_order: sortOrder,
     avoid_player_id: null,
